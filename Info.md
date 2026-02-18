@@ -47,4 +47,4 @@ All settings are configurable via the UI:
 
 ## Support
 
-[Documentation](https://github.com/YOUR_USERNAME/homeassistant-bookstack) | [Issues](https://github.com/YOUR_USERNAME/homeassistant-bookstack/issues)
+[Documentation](https://github.com/MattFryer/hass-bookstack) | [Issues](https://github.com/MattFryer/hass-bookstack/issues)
