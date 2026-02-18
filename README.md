@@ -199,19 +199,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - [BookStack](https://www.bookstackapp.com/) - The awesome knowledge base platform
 - [Home Assistant](https://www.home-assistant.io/) - Open source home automation
-
-## Changelog
-
-### 1.2.0
-- Added users, images, and attachments sensors
-- Improved error handling and logging
-- Added connectivity diagnostic sensor
-- Silver quality scale compliance
-- Full HACS support
-
-### 1.0.0
-- Initial release
-- Basic aggregate sensors
-- Per-shelf sensors
-- Last updated page tracking
-- Config flow with reauthentication
