@@ -1,0 +1,14 @@
+{
+  "domain": "bookstack",
+  "name": "BookStack",
+  "version": "1.2.0",
+  "documentation": "https://github.com/MattFryer/hass-bookstack",
+  "issue_tracker": "https://github.com/MattFryer/hass-bookstack/issues",
+  "codeowners": ["@MattFryer"],
+  "requirements": [],
+  "dependencies": [],
+  "config_flow": true,
+  "integration_type": "service",
+  "single_config_entry": true,
+  "iot_class": "local_polling"
+}

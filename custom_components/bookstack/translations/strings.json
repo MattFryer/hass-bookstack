@@ -1,0 +1,58 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to BookStack",
+        "data": {
+          "url": "BookStack URL",
+          "token_id": "API Token ID",
+          "token_secret": "API Token Secret",
+          "scan_interval": "Scan interval (seconds)",
+          "per_shelf_enabled": "Enable per-shelf sensors"
+        },
+        "data_description": {
+          "url": "The base URL of your BookStack instance, e.g. https://bookstack.example.com",
+          "token_id": "Found under your BookStack profile → API Tokens",
+          "token_secret": "Found under your BookStack profile → API Tokens",
+          "scan_interval": "How often to poll BookStack for updated data. Minimum recommended: 60 seconds.",
+          "per_shelf_enabled": "Creates individual sensors showing book, chapter and page counts per shelf."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate with BookStack",
+        "description": "Your BookStack API credentials need to be updated.",
+        "data": {
+          "token_id": "API Token ID",
+          "token_secret": "API Token Secret"
+        },
+        "data_description": {
+          "token_id": "Found under your BookStack profile → API Tokens",
+          "token_secret": "Found under your BookStack profile → API Tokens"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid API credentials. Check your Token ID and Token Secret.",
+      "cannot_connect": "Unable to connect to BookStack. Check the URL and try again."
+    },
+    "abort": {
+      "already_configured": "This BookStack instance is already configured.",
+      "reauth_successful": "Re-authentication was successful."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "BookStack Options",
+        "data": {
+          "scan_interval": "Scan interval (seconds)",
+          "per_shelf_enabled": "Enable per-shelf sensors"
+        },
+        "data_description": {
+          "scan_interval": "How often to poll BookStack for updated data. Minimum recommended: 60 seconds.",
+          "per_shelf_enabled": "Creates individual sensors showing book, chapter and page counts per shelf."
+        }
+      }
+    }
+  }
+}

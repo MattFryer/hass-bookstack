@@ -1,0 +1,86 @@
+rules:
+  # Bronze
+  action-setup:
+    status: exempt
+    comment: Integration does not register any service actions.
+  appropriate-polling:
+    status: done
+    comment: Default 300s, user-configurable via options flow.
+  brands:
+    status: exempt
+    comment: Custom integration, not submitted to core.
+  common-modules:
+    status: done
+    comment: Coordinator in coordinator.py, constants in const.py.
+  config-flow-test-coverage:
+    status: exempt
+    comment: Custom integration without a test suite.
+  config-flow:
+    status: done
+  dependency-transparency:
+    status: done
+    comment: No external PyPI dependencies; uses only aiohttp bundled with HA.
+  docs-actions:
+    status: exempt
+    comment: No service actions provided.
+  docs-high-level-description:
+    status: done
+    comment: README.md describes the integration purpose.
+  docs-installation-instructions:
+    status: done
+    comment: README.md provides installation steps.
+  docs-removal-instructions:
+    status: exempt
+    comment: Standard HA removal flow applies.
+  entity-event-setup:
+    status: done
+    comment: Coordinator listener registered in async_setup_entry, not in entity __init__.
+  entity-unique-id:
+    status: done
+  has-entity-name:
+    status: done
+    comment: All entities set _attr_has_entity_name = True.
+  runtime-data:
+    status: done
+    comment: Coordinator stored on entry.runtime_data.
+  test-before-configure:
+    status: done
+    comment: _validate_input calls /api/system before creating the entry.
+  test-before-setup:
+    status: done
+    comment: async_config_entry_first_refresh raises ConfigEntryNotReady on failure.
+  unique-config-entry:
+    status: done
+    comment: single_config_entry set in manifest.json; unique_id set to normalised URL.
+
+  # Silver
+  action-exceptions:
+    status: exempt
+    comment: No service actions.
+  config-entry-unloading:
+    status: done
+    comment: async_unload_entry implemented.
+  docs-configuration-parameters:
+    status: done
+    comment: README.md documents scan_interval and per_shelf_enabled options.
+  docs-installation-parameters:
+    status: done
+    comment: README.md documents URL and API token fields.
+  entity-unavailable:
+    status: done
+    comment: All entities override available property tied to coordinator.is_available.
+  integration-owner:
+    status: exempt
+    comment: Custom integration without a designated core owner.
+  log-when-unavailable:
+    status: done
+    comment: Coordinator logs once on disconnect and once on reconnect.
+  parallel-updates:
+    status: done
+    comment: PARALLEL_UPDATES = 1 set in sensor.py.
+  reauthentication-flow:
+    status: done
+    comment: async_step_reauth and async_step_reauth_confirm implemented.
+  test-coverage:
+    status: exempt
+    comment: Custom integration without a test suite.
