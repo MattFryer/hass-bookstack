@@ -20,20 +20,20 @@ from .coordinator import BookStackCoordinator
 # entity updates to avoid hammering it with concurrent requests.
 PARALLEL_UPDATES = 1
 
-STATIC_SENSORS: dict[str, str] = {
-    "shelves": "Shelves",
-    "books": "Books",
-    "chapters": "Chapters",
-    "pages": "Pages",
-    "users": "Users",
-    "images": "Images",
-    "attachments": "Attachments",
+STATIC_SENSORS: dict[str, tuple[str, str]] = {
+    "shelves": ("Shelves", "mdi:bookshelf"),
+    "books": ("Books", "mdi:book-multiple"),
+    "chapters": ("Chapters", "mdi:book-open"),
+    "pages": ("Pages", "mdi:file-document-multiple"),
+    "users": ("Users", "mdi:account-multiple"),
+    "images": ("Images", "mdi:image-multiple"),
+    "attachments": ("Attachments", "mdi:paperclip-multiple"),
 }
 
-SHELF_SENSOR_TYPES: list[tuple[str, str, str]] = [
-    ("book_count",    "Books",    "books"),
-    ("chapter_count", "Chapters", "chapters"),
-    ("page_count",    "Pages",    "pages"),
+SHELF_SENSOR_TYPES: list[tuple[str, str, str, str]] = [
+    ("book_count",    "Books",    "books",    "mdi:book-multiple"),
+    ("chapter_count", "Chapters", "chapters", "mdi:book-open"),
+    ("page_count",    "Pages",    "pages",    "mdi:file-document-multiple"),
 ]
 
 
@@ -46,15 +46,15 @@ async def async_setup_entry(
     coordinator: BookStackCoordinator = entry.runtime_data
 
     entities: list[SensorEntity | BinarySensorEntity] = [
-        BookStackSensor(coordinator, entry, key, name)
-        for key, name in STATIC_SENSORS.items()
+        BookStackSensor(coordinator, entry, key, name, icon)
+        for key, (name, icon) in STATIC_SENSORS.items()
     ]
 
     if coordinator.per_shelf_enabled:
         for shelf in coordinator.shelves_data:
-            for data_key, name_suffix, id_suffix in SHELF_SENSOR_TYPES:
+            for data_key, name_suffix, id_suffix, icon in SHELF_SENSOR_TYPES:
                 entities.append(
-                    BookStackShelfSensor(coordinator, entry, shelf, data_key, name_suffix, id_suffix)
+                    BookStackShelfSensor(coordinator, entry, shelf, data_key, name_suffix, id_suffix, icon)
                 )
 
     entities.append(BookStackLastUpdatedPageSensor(coordinator, entry))
@@ -73,10 +73,10 @@ async def async_setup_entry(
             new_entities: list[SensorEntity] = []
             for shelf in coordinator.shelves_data:
                 if shelf["id"] in new_ids:
-                    for data_key, name_suffix, id_suffix in SHELF_SENSOR_TYPES:
+                    for data_key, name_suffix, id_suffix, icon in SHELF_SENSOR_TYPES:
                         new_entities.append(
                             BookStackShelfSensor(
-                                coordinator, entry, shelf, data_key, name_suffix, id_suffix
+                                coordinator, entry, shelf, data_key, name_suffix, id_suffix, icon
                             )
                         )
             async_add_entities(new_entities)
@@ -110,10 +110,12 @@ class BookStackSensor(CoordinatorEntity[BookStackCoordinator], SensorEntity):
         entry: ConfigEntry,
         key: str,
         name: str,
+        icon: str,
     ) -> None:
         super().__init__(coordinator)
         self._key = key
         self._attr_name = name
+        self._attr_icon = icon
         self._attr_unique_id = f"{entry.entry_id}_{key}"
         self._attr_device_info = _device_info(coordinator, entry)
 
@@ -141,11 +143,13 @@ class BookStackShelfSensor(CoordinatorEntity[BookStackCoordinator], SensorEntity
         data_key: str,
         name_suffix: str,
         id_suffix: str,
+        icon: str,
     ) -> None:
         super().__init__(coordinator)
         self._shelf_id: int = shelf["id"]
         self._data_key = data_key
         self._attr_name = f"{shelf['name']} {name_suffix}"
+        self._attr_icon = icon
         self._attr_unique_id = f"{entry.entry_id}_shelf_{shelf['id']}_{id_suffix}"
         self._attr_device_info = _device_info(coordinator, entry)
 
@@ -179,6 +183,7 @@ class BookStackLastUpdatedPageSensor(CoordinatorEntity[BookStackCoordinator], Se
 
     _attr_device_class = SensorDeviceClass.TIMESTAMP
     _attr_has_entity_name = True
+    _attr_icon = "mdi:file-document-clock"
 
     def __init__(
         self,
