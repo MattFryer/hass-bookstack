@@ -27,7 +27,7 @@ STATIC_SENSORS: dict[str, tuple[str, str]] = {
     "pages": ("Pages", "mdi:file-document-multiple"),
     "users": ("Users", "mdi:account-multiple"),
     "images": ("Images", "mdi:image-multiple"),
-    "attachments": ("Attachments", "mdi:paperclip-multiple"),
+    "attachments": ("Attachments", "mdi:paperclip"),
 }
 
 SHELF_SENSOR_TYPES: list[tuple[str, str, str, str]] = [
@@ -183,7 +183,7 @@ class BookStackLastUpdatedPageSensor(CoordinatorEntity[BookStackCoordinator], Se
 
     _attr_device_class = SensorDeviceClass.TIMESTAMP
     _attr_has_entity_name = True
-    _attr_icon = "mdi:file-document-clock"
+    _attr_icon = "mdi:file-clock"
 
     def __init__(
         self,
