@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.3.0] - 2026-02-20
+## Added
+- Added a Home Assistant action (formerly service) to create a new book in BookStack
+- Added a Home Assistant action (formerly service) to create a new page in BookStack
+- Added a Home Assistant action (formerly service) to append content to an existing page in BookStack
+
+### Changed
+- Updates all code with detailed comments for better maintainability
+
+## [1.2.1] - 2026-02-19
+### Fixed
+- Fixed missing icons on some Home Assistant sensors
+
 ## [1.2.0] - 2026-02-18
 ### Added
 - Added users, images, and attachments sensors

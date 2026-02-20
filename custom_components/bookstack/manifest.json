@@ -1,7 +1,7 @@
 {
   "domain": "bookstack",
   "name": "BookStack",
-  "version": "1.2.2",
+  "version": "1.3.0",
   "documentation": "https://github.com/MattFryer/hass-bookstack",
   "issue_tracker": "https://github.com/MattFryer/hass-bookstack/issues",
   "codeowners": ["@MattFryer"],

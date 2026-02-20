@@ -27,3 +27,10 @@ CONF_PER_SHELF_ENABLED = "per_shelf_enabled" # Whether to create individual sens
 # Default values for options
 # These are the default values for the options if the user does not specify them during setup or through the options flow.
 DEFAULT_SCAN_INTERVAL = 300
+
+# Action (service) constants
+# These constants represent the names of the services (actions) that this integration provides. They should match the top-level keys 
+# in services.yaml and the names used in async_register() in __init__.
+ACTION_CREATE_BOOK = "create_book"
+ACTION_CREATE_PAGE = "create_page"
+ACTION_APPEND_PAGE = "append_page"

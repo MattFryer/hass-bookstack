@@ -1,10 +1,12 @@
 # BookStack Home Assistant Integration
 
-Integrate your BookStack instance with Home Assistant to monitor content statistics and track updates.
+Integrate your BookStack instance with Home Assistant to monitor content statistics, track updates and even add new books and pages to BookStack.
 
 ## Features
 
-✨ **Aggregate Statistics**
+### Sensors
+
+**Aggregate Statistics**
 - **Shelves**: Total number of shelves
 - **Books**: Total number of books
 - **Chapters**: Total number of chapters
@@ -13,15 +15,13 @@ Integrate your BookStack instance with Home Assistant to monitor content statist
 - **Images**: Total number of images in the gallery
 - **Attachments**: Total number of file attachments
 
-📚 **Per-Shelf Monitoring**
-
+**Per-Shelf Monitoring**
 For each shelf in your BookStack instance, the following sensors will be created:
 - **{Shelf Name} Books**: Number of books on this shelf
 - **{Shelf Name} Chapters**: Number of chapters across all books on this shelf
 - **{Shelf Name} Pages**: Number of pages across all books on this shelf
 
-⏰ **Additional Sensors**
-
+**Additional Sensors**
 - **Last Updated Page**: Timestamp of the most recently updated page, with additional attributes:
   - `page_name`: Name of the updated page
   - `page_id`: BookStack page ID of the page
@@ -30,12 +30,19 @@ For each shelf in your BookStack instance, the following sensors will be created
   - `page_url`: URL linking directly to the page
 - **Connectivity**: Diagnostic sensor showing BookStack availability
 
+### Actions (formerly Services)
+
+- **Create a Book**: Create a new book in BookStack
+- **Create a Page**: Create a new page in a specified book in BookStack
+- **Append to a Page**: Append additional content to the end of an existing page in BookStack
+
+
 ## Quick Start
 
 1. Get your API credentials from BookStack (Profile → API Tokens)
 2. Add the integration via Settings → Devices & Services
 3. Enter your BookStack URL and API credentials
-4. Configure polling interval and per-shelf sensors
+4. Configure polling interval and per-shelf sensors as desired
 
 ## Configuration
 

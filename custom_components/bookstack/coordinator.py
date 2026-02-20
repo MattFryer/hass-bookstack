@@ -24,11 +24,15 @@ from .const import DEFAULT_SCAN_INTERVAL
 _LOGGER = logging.getLogger(__name__)
 
 class BookStackCoordinator(DataUpdateCoordinator[dict[str, Any]]):
-    """Coordinator to fetch BookStack stats and per-shelf book counts at the desired interval
+    """Coordinator to handle all communication with the BookStack API including:
+        - Getting BookStack stats and per-shelf book counts at the desired interval.
+        - Handling actions (services) that perform API calls to modify data in BookStack, such as creating a new book.
     
     Inherits the HA DataUpdateCoordinator, which provides a convenient way to manage periodic data fetching and updating entities. We 
     implement the _async_update_data method to fetch data from the BookStack API, and we can call self.async_refresh() to trigger an 
     update when options change.
+
+    We also implement an async_create_book method that can be called by the service handler when the "create_book" action is invoked. 
     """
 
     def __init__(
@@ -223,3 +227,472 @@ class BookStackCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # Wrap the original exception in an UpdateFailed to signal to the DataUpdateCoordinator that the update failed due to a 
             # connection issue. This will trigger the retry logic based on the update interval.
             raise UpdateFailed(f"Connection error: {err}") from err
+        
+    async def async_create_book(
+        self,
+        shelf_id: int,
+        name: str,
+        description: str = "",
+        tags: list[dict[str, str]] | None = None,
+    ) -> dict[str, Any]:
+        """Create a new book on the specified shelf via the BookStack API.
+
+        Calls POST /api/books to create the book (with name, description, and tags). The API doesn't allow us to specify the shelf when 
+        creating the book, so we then call PUT /api/shelves/{shelf_id} to assign it to the shelf.
+
+        Arguments:
+            shelf_id:       The BookStack ID of the shelf the book should live on.
+            name:           The display name of the new book (required by the API).
+            description:    Optional plain-text description shown on the book cover.
+            tags:           Optional list of tag dicts to attach to the book. Each dict must have a required "name" key and an optional 
+                            "value" key (e.g. [{"name": "env", "value": "prod"}, {"name": "draft"}]). Omitting "value" (or leaving it blank) 
+                            displays the tag as a label-style tag in the BookStack UI.
+
+        Returns:
+            The full book object returned by the BookStack API (includes the new book's id, slug, url, created_at, etc.).
+
+        Raises:
+            ServiceValidationError: if the request is rejected by the API (e.g.
+                                    blank name, shelf not found).
+            HomeAssistantError:     on unexpected API errors or network failures.
+        """
+        # Import here to keep the top-level imports as minimal as possible. These are only needed when an action is called, not during 
+        # normal coordinator polling.
+        from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+
+        headers = {
+            "Authorization": f"Token {self.config['token_id']}:{self.config['token_secret']}", # Define the auth header as normal
+            "Content-Type": "application/json", # We're sending JSON bodies, so tell the API what to expect.
+        }
+        base_url = self.config["url"].rstrip("/") # Get the BookStack base URL from the config and make sure it doesn't end with a slash.
+        timeout = aiohttp.ClientTimeout(total=10) # Set a reasonable timeout for the API requests.
+
+        # Step 1: Create the book with the provided name, description, and tags. The API requires at least a name, but description and 
+        # tags are optional. 
+
+        # Convert the list of tag dicts into the format the BookStack API expects: 
+        #   [{"name": "tag1", "value": "val1"}, {"name": "tag2", "value": ""}, ...].
+        # Stripping whitespace from names avoids accidentally creating blank tags. The "value" key is included even when empty, which is 
+        # valid in the BookStack API and displays the tag as a label-style tag (name only) in the BookStack UI.
+        tag_payload = [
+            {"name": t["name"].strip(), "value": t.get("value", "").strip()}
+            for t in (tags or [])
+            if t.get("name", "").strip()
+        ]
+
+        book_payload: dict[str, Any] = {
+            "name": name,
+            "description": description,
+            "tags": tag_payload,
+        }
+
+        books_url = f"{base_url}/api/books" # Set the endpoint for creating the book
+        try:
+            async with self.session.post(
+                books_url, headers=headers, json=book_payload, timeout=timeout
+            ) as resp:
+                if resp.status == 401:
+                    raise HomeAssistantError(
+                        "BookStack rejected the request: invalid API credentials"
+                    )
+                if resp.status == 422:
+                    # Unprocessable Entity — the API rejected the payload (e.g. name is blank). Include the response body for context.
+                    body = await resp.text()
+                    raise ServiceValidationError(
+                        f"BookStack rejected the book data: {body}"
+                    )
+                if resp.status != 200:
+                    # For any other unexpected status code, raise a generic error with the status code. 
+                    raise HomeAssistantError(
+                        f"Unexpected response from BookStack when creating book "
+                        f"(HTTP {resp.status})"
+                    )
+                # For a successful creation, the API returns the full book object in the response body, which includes the new book's 
+                # ID, slug, URL, etc. We return this to the caller so they can use that information in their automation templates if 
+                # needed.
+                book = await resp.json() 
+
+        except (HomeAssistantError, ServiceValidationError):
+            raise  # Re-raise our own errors unchanged
+        except aiohttp.ClientError as err:
+            raise HomeAssistantError(
+                f"Could not connect to BookStack to create book: {err}"
+            ) from err
+
+        # Step 2: Assign the book to the requested shelf
+
+        # To place a book on a shelf we must PUT the shelf with its complete current book list plus the new book's ID. We fetch the 
+        # shelf first so we don't accidentally remove books that are already on it.
+
+        shelf_url = f"{base_url}/api/shelves/{shelf_id}" # Endpoint for fetching and updating the shelf.
+        try:
+            async with self.session.get(
+                shelf_url, headers=headers, timeout=timeout
+            ) as resp:
+                if resp.status == 404:
+                    # If the shelf doesn't exist, log the orphaned book ID so the user can find and clean it up.
+                    _LOGGER.warning(
+                        "Book '%s' (id=%s) was created but shelf %s was not found. "
+                        "The book exists in BookStack but is not on any shelf.",
+                        name, book.get("id"), shelf_id,
+                    )
+                    # Return an error back to the user so they also know that the shelf wasn't found.
+                    raise ServiceValidationError(
+                        f"Shelf with ID {shelf_id} was not found. The book was "
+                        f"created (id={book.get('id')}) but could not be assigned "
+                        f"to the shelf."
+                    )
+                if resp.status != 200:
+                    # If we get any other error, raise a generic error with the status code. Again, the book will have been created but 
+                    # not assigned to the shelf.
+                    raise HomeAssistantError(
+                        f"Unexpected response fetching shelf {shelf_id} "
+                        f"(HTTP {resp.status})"
+                    )
+                shelf_data = await resp.json()
+
+        except (HomeAssistantError, ServiceValidationError):
+            raise # Re-raise our own errors unchanged
+        except aiohttp.ClientError as err:
+            raise HomeAssistantError(
+                f"Could not connect to BookStack to fetch shelf: {err}"
+            ) from err
+
+        # Build the updated list of book IDs adding the new book ID to those already on the shelf.
+        existing_book_ids = [b["id"] for b in shelf_data.get("books", [])]
+        updated_book_ids = existing_book_ids + [book["id"]]
+
+        shelf_payload = {"books": updated_book_ids} # Create the JSON payload to update the shelf with the new list of books.
+
+        # Make the PUT request to update the shelf
+        try:
+            async with self.session.put(
+                shelf_url, headers=headers, json=shelf_payload, timeout=timeout
+            ) as resp:
+                if resp.status not in (200, 204):
+                    # If we don't get a success status code, raise an error. The book will have been created but not assigned to the 
+                    # shelf as intended.
+                    raise HomeAssistantError(
+                        f"Unexpected response assigning book to shelf "
+                        f"(HTTP {resp.status})"
+                    )
+
+        except (HomeAssistantError, ServiceValidationError):
+            raise # Re-raise our own errors unchanged
+        except aiohttp.ClientError as err:
+            raise HomeAssistantError(
+                f"Could not connect to BookStack to update shelf: {err}"
+            ) from err
+
+        _LOGGER.debug(
+            "Created book '%s' (id=%s) on shelf %s", name, book.get("id"), shelf_id
+        )
+
+        # Trigger an immediate coordinator refresh so the book-count sensors update straight away rather than waiting for the next 
+        # scheduled poll.
+        await self.async_request_refresh()
+
+        # Return the info about the newly created book to the caller (e.g. book ID, slug, url, etc), which can be used in the automation 
+        # response or templates.
+        return book
+    
+    async def async_create_page(
+        self,
+        book_id: int,
+        name: str,
+        chapter_id: int | None = None,
+        html: str | None = None,
+        markdown: str | None = None,
+        tags: list[dict[str, str]] | None = None,
+    ) -> dict[str, Any]:
+        """Create a new page in the specified book (and optionally chapter) via the BookStack API.
+
+        Calls POST /api/pages to create the page. Exactly one of html or markdown must be provided. Supplying both or neither raises a 
+        ServiceValidationError before any API call is made.
+
+        Arguments:
+            book_id:    The BookStack ID of the book the page should be created in.
+            name:       The display name (title) of the new page (required by the API).
+            chapter_id: Optional BookStack ID of a chapter within the book. When provided the page is nested inside that chapter; when 
+                        omitted the page sits at the top level of the book.
+            html:       Page content as an HTML string. Mutually exclusive with markdown.
+            markdown:   Page content as a Markdown string. Mutually exclusive with html.
+            tags:       Optional list of tag dicts to attach to the page. Each dict must have a required "name" key and an optional 
+                        "value" key (e.g. [{"name": "env", "value": "prod"}, {"name": "draft"}]). Omitting "value" (or leaving it blank) 
+                        displays the tag as a plain label.
+
+        Returns:
+            The full page object returned by the BookStack API (includes the new page's id, slug, url, book_id, chapter_id, created_at, etc.).
+
+        Raises:
+            ServiceValidationError: if neither or both of html/markdown are supplied, or if the
+                                    API rejects the request (e.g. blank name, book not found).
+            HomeAssistantError:     on unexpected API errors or network failures.
+        """
+        from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+
+        # Validate the html/markdown mutual exclusivity before making any API calls so the user gets a clear error message rather than a 
+        # confusing API response.
+        has_html = html is not None and html.strip() != ""
+        has_markdown = markdown is not None and markdown.strip() != ""
+
+        if has_html and has_markdown:
+            raise ServiceValidationError(
+                "Provide either 'html' or 'markdown' for the page content, not both."
+            )
+        if not has_html and not has_markdown:
+            raise ServiceValidationError(
+                "Either 'html' or 'markdown' must be provided for the page content."
+            )
+
+        headers = {
+            "Authorization": f"Token {self.config['token_id']}:{self.config['token_secret']}",
+            "Content-Type": "application/json",
+        }
+        base_url = self.config["url"].rstrip("/")
+        timeout = aiohttp.ClientTimeout(total=10)
+
+        # Build the tag payload in the format the BookStack API expects. Tags with an empty value are included as-is. The API treats 
+        # them as label-style tags.
+        tag_payload = [
+            {"name": t["name"].strip(), "value": t.get("value", "").strip()}
+            for t in (tags or [])
+            if t.get("name", "").strip()
+        ]
+
+        # Build the page payload. We always send book_id; chapter_id is only included when provided since sending null/None would be 
+        # treated as "no chapter" by the API anyway, but omitting it entirely is cleaner and avoids potential API validation issues.
+        page_payload: dict[str, Any] = {
+            "book_id": book_id,
+            "name": name,
+            "tags": tag_payload,
+        }
+
+        if chapter_id is not None:
+            # When a chapter_id is given the API also requires book_id (already set above). The page will appear inside the chapter 
+            # rather than at the top level of the book.
+            page_payload["chapter_id"] = chapter_id
+
+        # Add the content under the correct key depending on which format was supplied.
+        if has_html:
+            page_payload["html"] = html
+        else:
+            page_payload["markdown"] = markdown
+
+        pages_url = f"{base_url}/api/pages"
+        try:
+            async with self.session.post(
+                pages_url, headers=headers, json=page_payload, timeout=timeout
+            ) as resp:
+                if resp.status == 401:
+                    raise HomeAssistantError(
+                        "BookStack rejected the request: invalid API credentials"
+                    )
+                if resp.status == 422:
+                    # Unprocessable Entity — the API rejected the payload (e.g. blank name, book_id not found). Include the response body 
+                    # for context.
+                    body = await resp.text()
+                    raise ServiceValidationError(
+                        f"BookStack rejected the page data: {body}"
+                    )
+                if resp.status != 200:
+                    raise HomeAssistantError(
+                        f"Unexpected response from BookStack when creating page "
+                        f"(HTTP {resp.status})"
+                    )
+                page = await resp.json()
+
+        except (HomeAssistantError, ServiceValidationError):
+            raise
+        except aiohttp.ClientError as err:
+            raise HomeAssistantError(
+                f"Could not connect to BookStack to create page: {err}"
+            ) from err
+
+        _LOGGER.debug(
+            "Created page '%s' (id=%s) in book %s%s",
+            name,
+            page.get("id"),
+            book_id,
+            f", chapter {chapter_id}" if chapter_id is not None else "",
+        )
+
+        # Trigger a coordinator refresh so the page-count sensors update straight away.
+        await self.async_request_refresh()
+
+        # Return the full page object to the caller so they can use the page ID, slug, URL etc. in automation response templates.
+        return page
+    
+    async def async_append_page(
+        self,
+        page_id: int,
+        html: str | None = None,
+        markdown: str | None = None,
+        tags: list[dict[str, str]] | None = None,
+    ) -> dict[str, Any]:
+        """Append content to an existing page via the BookStack API.
+
+        Fetches the current page (GET /api/pages/{id}), validates that the supplied content format matches the page's existing format, 
+        merges the new content onto the end, then writes it back (PUT /api/pages/{id}).
+
+        A page is considered Markdown-mode when its ``markdown`` field returned by the API is non-empty; otherwise it is treated as 
+        HTML-mode. Attempting to append HTML to a Markdown page (or vice-versa) raises a ServiceValidationError before any write is 
+        attempted.
+
+        Any tags supplied are *added* to the page. Existing tags on the page are preserved; the combined list (existing + new) is sent in
+        the PUT payload. Duplicate tag name/value pairs are de-duplicated so that calling the action repeatedly does not accumulate 
+        identical tags.
+
+        Arguments:
+            page_id:    The BookStack ID of the page to append content to.
+            html:       Content to append as an HTML string. Mutually exclusive with markdown.
+            markdown:   Content to append as a Markdown string. Mutually exclusive with html.
+            tags:       Optional list of tag dicts to add to the page. Each dict must have a required "name" key and an optional "value" 
+                        key. Existing tags are preserved.
+
+        Returns:
+            The full updated page object returned by the BookStack API.
+
+        Raises:
+            ServiceValidationError: if neither or both of html/markdown are supplied, if the formats are mismatched, or if the page is 
+            not found (404).
+            HomeAssistantError:     on unexpected API errors or network failures.
+        """
+        from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+
+        # Validate the html/markdown mutual exclusivity before touching the API.
+        has_html = html is not None and html.strip() != ""
+        has_markdown = markdown is not None and markdown.strip() != ""
+
+        if has_html and has_markdown:
+            raise ServiceValidationError(
+                "Provide either 'html' or 'markdown' for the content to append, not both."
+            )
+        if not has_html and not has_markdown:
+            raise ServiceValidationError(
+                "Either 'html' or 'markdown' must be provided for the content to append."
+            )
+
+        headers = {
+            "Authorization": f"Token {self.config['token_id']}:{self.config['token_secret']}",
+            "Content-Type": "application/json",
+        }
+        base_url = self.config["url"].rstrip("/")
+        timeout = aiohttp.ClientTimeout(total=10)
+        page_url = f"{base_url}/api/pages/{page_id}"
+
+        # Step 1: Fetch the existing page so we can read its current content and tags.
+        try:
+            async with self.session.get(page_url, headers=headers, timeout=timeout) as resp:
+                if resp.status == 404:
+                    raise ServiceValidationError(
+                        f"Page with ID {page_id} was not found in BookStack."
+                    )
+                if resp.status == 401:
+                    raise HomeAssistantError(
+                        "BookStack rejected the request: invalid API credentials"
+                    )
+                if resp.status != 200:
+                    raise HomeAssistantError(
+                        f"Unexpected response fetching page {page_id} (HTTP {resp.status})"
+                    )
+                existing = await resp.json()
+
+        except (HomeAssistantError, ServiceValidationError):
+            raise
+        except aiohttp.ClientError as err:
+            raise HomeAssistantError(
+                f"Could not connect to BookStack to fetch page {page_id}: {err}"
+            ) from err
+
+        # Step 2: Determine whether the existing page is Markdown-mode or HTML-mode. The API always returns both fields, but markdown 
+        # will be an empty string for HTML pages.
+        existing_markdown = existing.get("markdown", "")
+        page_is_markdown = bool(existing_markdown)  # non-empty string → Markdown page
+
+        if page_is_markdown and has_html:
+            raise ServiceValidationError(
+                f"Page {page_id} uses Markdown. Provide 'markdown' content to append, not 'html'."
+            )
+        if not page_is_markdown and has_markdown:
+            raise ServiceValidationError(
+                f"Page {page_id} uses HTML. Provide 'html' content to append, not 'markdown'."
+            )
+
+        # Step 3: Build the merged content by appending the new content to the existing content.
+        if page_is_markdown:
+            # For Markdown pages we separate the existing and new content with a blank line, which is the standard Markdown paragraph 
+            # separator and avoids unintentionally merging the last line of the existing content with the first line of the new content.
+            merged_content_key = "markdown"
+            merged_content_value = existing_markdown.rstrip("\n") + "\n\n" + markdown.strip()
+        else:
+            # For HTML pages we simply concatenate the existing and new HTML. BookStack stores page content as a sequence of block-level
+            # elements, so concatenation is safe as long as the supplied html contains valid block-level elements (as the API docs 
+            # recommend).
+            merged_content_key = "html"
+            merged_content_value = existing.get("html", "") + html
+
+        # Step 4: Merge the tags. Preserve all existing tags and add any new ones that are not already present (matched on both name and 
+        # value to avoid exact duplicates).
+        new_tag_payload = [
+            {"name": t["name"].strip(), "value": t.get("value", "").strip()}
+            for t in (tags or [])
+            if t.get("name", "").strip()
+        ]
+        # Start with the existing tags
+        existing_tags = existing.get("tags", [])
+
+        # Normalise existing tags to the same name/value dict structure the API accepts on write, dropping any extra fields (e.g. 
+        # "order") that the read response may include.
+        existing_tag_payload = [
+            {"name": t["name"], "value": t.get("value", "")}
+            for t in existing_tags
+        ]
+
+        # De-duplicate tags: only add new tags whose (name, value) pair isn't already present.
+        existing_tag_set = {(t["name"], t["value"]) for t in existing_tag_payload}
+        merged_tags = existing_tag_payload + [
+            t for t in new_tag_payload
+            if (t["name"], t["value"]) not in existing_tag_set
+        ]
+
+        # Step 5: Write the updated page back to BookStack.
+        put_payload: dict[str, Any] = {
+            merged_content_key: merged_content_value,
+            "tags": merged_tags,
+        }
+
+        # Handle the outcome of writing the new version of the page back to the API.
+        try:
+            async with self.session.put(
+                page_url, headers=headers, json=put_payload, timeout=timeout
+            ) as resp:
+                if resp.status == 401:
+                    raise HomeAssistantError(
+                        "BookStack rejected the request: invalid API credentials"
+                    )
+                if resp.status == 422:
+                    body = await resp.text()
+                    raise ServiceValidationError(
+                        f"BookStack rejected the updated page data: {body}"
+                    )
+                if resp.status != 200:
+                    raise HomeAssistantError(
+                        f"Unexpected response from BookStack when updating page {page_id} "
+                        f"(HTTP {resp.status})"
+                    )
+                updated_page = await resp.json()
+
+        except (HomeAssistantError, ServiceValidationError):
+            raise # Re-raise our own errors unchanged
+        except aiohttp.ClientError as err:
+            raise HomeAssistantError(
+                f"Could not connect to BookStack to update page {page_id}: {err}"
+            ) from err
+
+        _LOGGER.debug("Appended content to page '%s' (id=%s)", updated_page.get("name"), page_id)
+
+        # We don't need to trigger a coordinator refresh as updating the contents of a single page won't cause any sensor counts to 
+        # change.  Instead we just return the updated page data to the caller so we can use it in our automation response/templates 
+        # if needed.
+        return updated_page

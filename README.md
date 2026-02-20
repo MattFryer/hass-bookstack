@@ -51,6 +51,13 @@ For each shelf in your BookStack instance, the following sensors will be created
   - `page_url`: URL linking directly to the page
 - **Connectivity**: Diagnostic sensor showing BookStack availability
 
+### Actions (formerly Services)
+
+The integration provides the following Home Assistant actions:
+- ```bookstack.create_book```: Create a new Book in BookStack and assign it to a Shelf.
+- ```bookstack.create_page```: Create a new Page in a specific Book in BookStack.
+- ```bookstack.append_page```: Appends content and tags to an existing Page in BookStack.
+
 ## Installation
 
 ### HACS (Recommended)
@@ -144,6 +151,59 @@ automation:
             {{ states('sensor.bookstack_shelves') }} shelves
 ```
 
+## Action Examples
+
+The following are examples of using the Home Assistant actions available with this integration:
+
+### Creating a book 
+Create a new book in BookStack and assigning it to a shelf:
+```yaml
+action: bookstack.create_book
+data:
+  shelf_id: 5
+  name: "My New Book"
+  description: "Notes about my setup"
+  tags:
+    - "home-automation"
+    - "networking"
+response_variable: new_book
+```
+After the action runs, the ```response_variable``` will contain all information about the book which the BookStack API returns. The information in the response can be used in following actions. Most useful are:
+- ```new_book.id```: Contains the id BookStack has assigned to the new book.
+- ```new_book.url```: Contains the url to the new book in BookStack.
+
+### Create a page
+Create a new page in a specific book in BookStack:
+```yaml
+action: bookstack.create_page
+data:
+  book_id: 20
+  name: My New Page
+  markdown: |
+    ## This is a sub title
+    This is some text in the page
+    ### This is a sub sub title
+    This is some more text in the page
+  tags:
+    - name: home-automation
+    - name: environment
+      value: production
+response_variable: new_page
+```
+After the action runs, the ```response_variable``` will contain all information about the page which the BookStack API returns. The information in the response can be used in following actions. Most useful are:
+- ```new_page.id```: Contains the id BookStack has assigned to the new page.
+- ```new_page.url```: Contains the url to the new book in BookStack.
+
+
+### Append to a page
+Append additional contents to an existing page in BookStack:
+```
+
+```
+Additional content in either ```markdown``` or ```html``` will be appended to the bottom of the page. Any ```tags``` specified will be added to the page. Duplicate tags (i.e. those already assigned to the page) will be simply ignored.
+> [!CAUTION]
+> The BookStack API behaviour around HTML and Markdown content is limiting. If the page was created in markdown then the API will return both a markdown and HTML version of the page. If it was created in HTML then the API will only return a HTML version of the page and the markdown element will be blank. Because of this, if the action is configured with the markdown element then the integration will first check if the page has existing markdown content, and if not, the action call will fail.
+
 ## Troubleshooting
 
 ### Integration won't load
@@ -207,6 +267,5 @@ The below are possible future additions and improvements to the integration. To 
 - Submit icon/logo to the [Home Assistant Brands repository](https://github.com/home-assistant/brands) - SUBMITTED - Awaiting review and merge
 - Submit integration for [inclusion in HACS](https://www.hacs.xyz/docs/publish/integration/)
 - Add sensor(s) for the number of draft pages
-- Add an action to create a book in a specific shelf
 - Add an action(s) to create a page in a specific book/chapter or to update an existing one. 
 - Add an action of appending content to an existing page.

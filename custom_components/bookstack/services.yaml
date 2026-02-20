@@ -1,0 +1,191 @@
+# services.yaml — describes the actions (formerly "services") provided by the BookStack integration to Home Assistant.
+#
+# This file controls how actions appear in:
+#   - Developer Tools → Actions (the action picker and form UI)
+#   - The automation/script action editor
+#
+# Each top-level key must exactly match an ACTION_* constant in const.py and the name passed to hass.services.async_register() in __init__.py.
+
+create_book:
+  # Human-readable name shown in the HA UI action picker
+  name: Create Book
+  # Short description shown below the name in the action picker
+  description: >
+    Creates a new book in BookStack and assigns it to the specified shelf. Returns the newly created book's data (id, name, slug, url, etc.) as a response that can be 
+    used in automation templates.
+
+  # Fields describes every parameter the action accepts. HA uses this to render the form in Developer Tools and the automation editor.
+  fields:
+
+    shelf_id:
+      name: Shelf ID
+      description: >
+        The numeric ID of the shelf to place the new book on. You can find a shelf's ID in its URL in the BookStack web UI (e.g. /shelves/5 → ID is 5), or from the 
+        Shelf sensors' attributes.
+      required: true
+      # Example is shown as placeholder text in the UI form
+      example: 5
+      selector:
+        number:
+          min: 1
+          mode: box
+
+    name:
+      name: Book Name
+      description: The display name of the new book. Must not be empty.
+      required: true
+      example: "My New Book"
+      selector:
+        text:
+
+    description:
+      name: Description
+      description: >
+        Optional plain-text description displayed on the book's cover page in BookStack. Leave blank to create the book without a description.
+      required: false
+      example: "A collection of notes about my home network."
+      selector:
+        text:
+          multiline: true
+
+    tags:
+      name: Tags
+      description: >
+        Optional list of tags to attach to the book. Each tag requires a name and accepts an optional value. Tags with only a name display as plain labels in 
+        BookStack; tags with a value display as "name: value" pairs and can be used to filter and organise content (e.g. name: "environment", value: "production").
+      required: false
+      example:
+        - name: "home-automation"
+        - name: "environment"
+          value: "production"
+      selector:
+        object:
+
+create_page:
+  name: Create Page
+  description: >
+    Creates a new page in a BookStack book. Page content must be supplied as either HTML or Markdown (not both). Returns the newly created page's data (id, name, 
+    slug, url, book_id, chapter_id, etc.) as a response that can be used in automation templates.
+
+  fields:
+
+    book_id:
+      name: Book ID
+      description: >
+        The numeric ID of the book to create the page in. You can find a book's ID in its URL in the BookStack web UI (e.g. /books/my-book-slug → use the Books sensor
+        attributes), or from the API response when creating a book.
+      required: true
+      example: 3
+      selector:
+        number:
+          min: 1
+          mode: box
+
+    chapter_id:
+      name: Chapter ID
+      description: >
+        Optional. The numeric ID of a chapter within the book to nest the page inside. When omitted the page is created at the top level of the book. You can find a 
+        chapter's ID in its URL in the BookStack web UI or from the API.
+      required: false
+      example: 7
+      selector:
+        number:
+          min: 1
+          mode: box
+
+    name:
+      name: Page Name
+      description: The display title of the new page. Must not be empty.
+      required: true
+      example: "My New Page"
+      selector:
+        text:
+
+    html:
+      name: HTML Content
+      description: >
+        Page content as an HTML string. Mutually exclusive with Markdown Content — provide exactly one. Leave blank if using Markdown Content instead.
+      required: false
+      example: "<h1>Hello</h1><p>This is my page.</p>"
+      selector:
+        text:
+          multiline: true
+
+    markdown:
+      name: Markdown Content
+      description: >
+        Page content as a Markdown string. Mutually exclusive with HTML Content — provide exactly one. Leave blank if using HTML Content instead.
+      required: false
+      example: "## Hello\n\nThis is my **new** page."
+      selector:
+        text:
+          multiline: true
+
+    tags:
+      name: Tags
+      description: >
+        Optional list of tags to attach to the page. Each tag requires a name and accepts an optional value. Tags with only a name display as plain labels in 
+        BookStack; tags with a value display as "name: value" pairs (e.g. name: "environment", value: "production").
+      required: false
+      example:
+        - name: "home-automation"
+        - name: "environment"
+          value: "production"
+      selector:
+        object:
+
+append_page:
+  name: Append to Page
+  description: >
+    Appends content to the bottom of an existing BookStack page. The content format (HTML or Markdown) must match the existing page's format — you cannot append HTML 
+    to a Markdown page or vice versa. Existing page content and tags are preserved; any tags supplied here are added to the page (exact duplicates are ignored). 
+    Returns the full updated page object as a response.
+
+  fields:
+
+    page_id:
+      name: Page ID
+      description: >
+        The numeric ID of the page to append content to. You can find a page's ID in its URL in the BookStack web UI, from the response when creating a page, or from 
+        the Last Updated Page sensor attributes.
+      required: true
+      example: 42
+      selector:
+        number:
+          min: 1
+          mode: box
+
+    html:
+      name: HTML Content
+      description: >
+        Content to append as an HTML string. Mutually exclusive with Markdown Content — provide exactly one. The page must already be in HTML mode; appending HTML to 
+        a Markdown page will return an error.
+      required: false
+      example: "<h2>Update</h2><p>New content appended by Home Assistant.</p>"
+      selector:
+        text:
+          multiline: true
+
+    markdown:
+      name: Markdown Content
+      description: >
+        Content to append as a Markdown string. Mutually exclusive with HTML Content — provide exactly one. The page must already be in Markdown mode; appending 
+        Markdown to an HTML page will return an error.
+      required: false
+      example: "## Update\n\nNew content appended by Home Assistant."
+      selector:
+        text:
+          multiline: true
+
+    tags:
+      name: Tags
+      description: >
+        Optional list of tags to add to the page. Existing tags are preserved. Each tag requires a name and accepts an optional value. Tags with only a name display 
+        as plain labels in BookStack; tags with a value display as "name: value" pairs. Exact duplicates (same name and value) are ignored.
+      required: false
+      example:
+        - name: "home-automation"
+        - name: "environment"
+          value: "production"
+      selector:
+        object:
