@@ -1,7 +1,7 @@
 # Changelog
 
 ## [1.3.0] - 2026-02-20
-## Added
+### Added
 - Added a Home Assistant action (formerly service) to create a new book in BookStack
 - Added a Home Assistant action (formerly service) to create a new page in BookStack
 - Added a Home Assistant action (formerly service) to append content to an existing page in BookStack
