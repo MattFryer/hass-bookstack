@@ -14,7 +14,6 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from homeassistant.components.binary_sensor import BinarySensorEntity, BinarySensorDeviceClass
 from homeassistant.components.sensor import SensorEntity, SensorStateClass, SensorDeviceClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
@@ -307,32 +306,3 @@ class BookStackLastUpdatedPageSensor(CoordinatorEntity[BookStackCoordinator], Se
             "updated_by_id": page.get("updated_by_id"),
             "page_url": page.get("url"),
         }
-
-
-class BookStackAvailabilitySensor(CoordinatorEntity[BookStackCoordinator], BinarySensorEntity):
-    """Binary sensor indicating whether BookStack is reachable.
-
-    Shown under the Diagnostic section of the device page. State: on = reachable, off = unreachable.
-    """
-
-    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY # Gives the sensor the correct device class in HA which affects the icon and how the values are displayed ("connector" or "disconnected")
-    _attr_entity_category = EntityCategory.DIAGNOSTIC # Causes the sensor to be shown in the "Diagnostics" section of the device page in HA
-    _attr_has_entity_name = True
-    _attr_icon = "mdi:close-network-outline"
-
-    def __init__(
-        self,
-        coordinator: BookStackCoordinator,
-        entry: ConfigEntry,
-    ) -> None:
-        super().__init__(coordinator)
-        self._attr_name = "Connectivity"
-        self._attr_unique_id = f"{entry.entry_id}_availability"
-        self._attr_device_info = _device_info(coordinator, entry)
-
-    @property
-    def is_on(self) -> bool:
-        """Return True when BookStack was successfully reached on the last poll.
-        
-        The coordinator sets is_available=True after a successful fetch and is_available=False on any connection error or auth failure."""
-        return self.coordinator.is_available

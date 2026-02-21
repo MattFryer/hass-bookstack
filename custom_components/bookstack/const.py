@@ -9,7 +9,7 @@ integration in the future.
 DOMAIN = "bookstack"
 
 # The HA platforms that this integration uses.
-PLATFORMS = ["sensor"]
+PLATFORMS = ["sensor", "binary_sensor"]
 
 # Configuration keys
 # These are the authentication keys that users will use in their configuration.yaml or through the UI when setting up the integration.
