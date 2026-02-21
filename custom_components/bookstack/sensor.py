@@ -184,7 +184,8 @@ class BookStackSensor(CoordinatorEntity[BookStackCoordinator], SensorEntity):
         Returns None (which HA renders as "unavailable") if the coordinator has no data yet, which can happen on the first update 
         before the API response is received.
         """
-        return self.coordinator.data.get(self._key) if self.coordinator.data else None
+        val = self.coordinator.data.get(self._key) if self.coordinator.data else None
+        return int(val) if val is not None else None
 
     @property
     def available(self) -> bool:
@@ -239,7 +240,7 @@ class BookStackShelfSensor(CoordinatorEntity[BookStackCoordinator], SensorEntity
     @property
     def native_value(self) -> int:
         """Return the current value of the sensor for this shelf and data key."""
-        return self._current_shelf().get(self._data_key, 0)
+        return int(self._current_shelf().get(self._data_key, 0))
 
     @property
     def available(self) -> bool:

@@ -99,7 +99,7 @@ class BookStackCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             parameter that returns the total number of items, which is more efficient than fetching all items when we only need the 
             count."""
             data = await get_json(f"{endpoint}?count=1")
-            return data.get("total", 0)
+            return int(data.get("total", 0))
 
         async def get_all_shelves() -> list[dict[str, Any]]:
             """Helper function to get a list of all shelves with their IDs and names. The /shelves endpoint is paginated, so we need to 
