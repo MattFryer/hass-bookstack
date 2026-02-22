@@ -101,6 +101,8 @@ class BookStackConfigFlow(config_entries.ConfigFlow, domain=DOMAIN): # type: ign
                         data=data,
                         options=options,
                     )
+                else:
+                    errors["base"] = "cannot_connect"
             except ConfigEntryAuthFailed:
                 # The API returned a 401 Unauthorized response, which means the credentials are invalid. We add an error to the errors 
                 # dictionary with the translation key "invalid_auth".
@@ -154,9 +156,11 @@ class BookStackConfigFlow(config_entries.ConfigFlow, domain=DOMAIN): # type: ign
                             CONF_TOKEN_SECRET: user_input[CONF_TOKEN_SECRET],
                         },
                     )
+                else:
+                    errors["base"] = "cannot_connect"
             except ConfigEntryAuthFailed:
                 errors["base"] = "invalid_auth"
-            except Exception:  # noqa: BLE001
+            except Exception:
                 errors["base"] = "cannot_connect"
 
         data_schema = vol.Schema(
@@ -214,6 +218,8 @@ class BookStackConfigFlow(config_entries.ConfigFlow, domain=DOMAIN): # type: ign
                     # We then abort the flow with a reason of "reauth_successful" to indicate that the re-authentication process is 
                     # complete.
                     return self.async_abort(reason="reauth_successful")
+                else:
+                    errors["base"] = "cannot_connect"
             except ConfigEntryAuthFailed:
                 errors["base"] = "invalid_auth"
             except Exception:  # noqa: BLE001
@@ -266,7 +272,7 @@ class BookStackConfigFlow(config_entries.ConfigFlow, domain=DOMAIN): # type: ign
             raise # Let the caller handle this specific exception to show an "invalid_auth" error message
         except aiohttp.ClientError:
             # Handle any network level errors (e.g., connection refused, DNS failure) as a connection issue
-            return False
+            raise Exception("cannot_connect") from aiohttp.ClientError
 
     @staticmethod
     def async_get_options_flow(
