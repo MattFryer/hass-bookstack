@@ -1,21 +1,26 @@
 # Changelog
 
-## [1.3.0] - 2026-02-20
-### Added
-- Added a Home Assistant action (formerly service) to create a new book in BookStack
-- Added a Home Assistant action (formerly service) to create a new page in BookStack
-- Added a Home Assistant action (formerly service) to append content to an existing page in BookStack
+## [1.3.1] - 2026-02-22
+## Added
 - Added sensor name translations (current only English)
 
 ### Fixed
 - Fixed connection sensor showing in Home Assistant as sesnor instead of binary_sensor
 
 ### Changed
-- Updates all code with detailed comments for better maintainability
 - Validated code against Home Assistant Integration Quality Scale and made multiple changes to codebase to support Gold and Platinum levels.
 
+## [1.3.0] - 2026-02-20
+### Added
+- Added a Home Assistant action (formerly service) to create a new book in BookStack
+- Added a Home Assistant action (formerly service) to create a new page in BookStack
+- Added a Home Assistant action (formerly service) to append content to an existing page in BookStack
+
+### Changed
+- Updates all code with detailed comments for better maintainability
 ## [1.2.1] - 2026-02-19
 ### Fixed
+
 - Fixed missing icons on some Home Assistant sensors
 
 ## [1.2.0] - 2026-02-18
