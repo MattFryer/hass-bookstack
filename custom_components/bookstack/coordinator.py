@@ -10,11 +10,11 @@ import logging
 from datetime import timedelta
 from typing import Any
 
-import aiohttp
+import aiohttp # type: ignore
 
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.core import HomeAssistant # type: ignore
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed # type: ignore
+from homeassistant.exceptions import ConfigEntryAuthFailed # type: ignore
 
 from .const import DEFAULT_SCAN_INTERVAL
 
@@ -258,7 +258,7 @@ class BookStackCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """
         # Import here to keep the top-level imports as minimal as possible. These are only needed when an action is called, not during 
         # normal coordinator polling.
-        from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+        from homeassistant.exceptions import HomeAssistantError, ServiceValidationError # type: ignore
 
         headers = {
             "Authorization": f"Token {self.config['token_id']}:{self.config['token_secret']}", # Define the auth header as normal
@@ -429,7 +429,7 @@ class BookStackCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                                     API rejects the request (e.g. blank name, book not found).
             HomeAssistantError:     on unexpected API errors or network failures.
         """
-        from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+        from homeassistant.exceptions import HomeAssistantError, ServiceValidationError # type: ignore
 
         # Validate the html/markdown mutual exclusivity before making any API calls so the user gets a clear error message rather than a 
         # confusing API response.
@@ -558,7 +558,7 @@ class BookStackCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             not found (404).
             HomeAssistantError:     on unexpected API errors or network failures.
         """
-        from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+        from homeassistant.exceptions import HomeAssistantError, ServiceValidationError # type: ignore
 
         # Validate the html/markdown mutual exclusivity before touching the API.
         has_html = html is not None and html.strip() != ""
@@ -624,7 +624,7 @@ class BookStackCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # For Markdown pages we separate the existing and new content with a blank line, which is the standard Markdown paragraph 
             # separator and avoids unintentionally merging the last line of the existing content with the first line of the new content.
             merged_content_key = "markdown"
-            merged_content_value = existing_markdown.rstrip("\n") + "\n\n" + markdown.strip()
+            merged_content_value = existing_markdown.rstrip("\n") + "\n\n" + markdown.strip() # type: ignore
         else:
             # For HTML pages we simply concatenate the existing and new HTML. BookStack stores page content as a sequence of block-level
             # elements, so concatenation is safe as long as the supplied html contains valid block-level elements (as the API docs 

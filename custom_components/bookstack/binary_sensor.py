@@ -6,13 +6,13 @@ fetching data from the BookStack API.
 """
 from __future__ import annotations
 
-from homeassistant.components.binary_sensor import BinarySensorEntity, BinarySensorDeviceClass
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import EntityCategory
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.components.binary_sensor import BinarySensorEntity, BinarySensorDeviceClass # type: ignore
+from homeassistant.config_entries import ConfigEntry # type: ignore
+from homeassistant.core import HomeAssistant # type: ignore
+from homeassistant.helpers.entity import EntityCategory # type: ignore
+from homeassistant.helpers.entity_platform import AddEntitiesCallback # type: ignore
+from homeassistant.helpers.update_coordinator import CoordinatorEntity # type: ignore
+from homeassistant.helpers.device_registry import DeviceInfo # type: ignore
 
 from .const import DOMAIN
 from .coordinator import BookStackCoordinator

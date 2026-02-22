@@ -12,9 +12,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from homeassistant.components.diagnostics import async_redact_data
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.components.diagnostics import async_redact_data # type: ignore
+from homeassistant.config_entries import ConfigEntry # type: ignore
+from homeassistant.core import HomeAssistant # type: ignore
 
 from .const import DOMAIN
 

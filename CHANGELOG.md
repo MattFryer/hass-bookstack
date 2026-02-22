@@ -6,6 +6,9 @@
 - Added a Home Assistant action (formerly service) to create a new page in BookStack
 - Added a Home Assistant action (formerly service) to append content to an existing page in BookStack
 
+### Fixed
+- Fixed connection sensor showing in Home Assistant as sesnor instead of binary_sensor
+
 ### Changed
 - Updates all code with detailed comments for better maintainability
 

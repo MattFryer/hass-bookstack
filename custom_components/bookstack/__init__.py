@@ -23,13 +23,13 @@ from __future__ import annotations
 
 import logging
 
-import voluptuous as vol
+import voluptuous as vol # type: ignore
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
-from homeassistant.exceptions import ServiceValidationError
-from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.config_entries import ConfigEntry # type: ignore
+from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse # type: ignore
+from homeassistant.exceptions import ServiceValidationError # type: ignore
+from homeassistant.helpers import config_validations # type: ignore
+from homeassistant.helpers.aiohttp_client import async_get_clientsession # type: ignore
 
 from .const import (
     DOMAIN, 
@@ -53,19 +53,19 @@ _LOGGER = logging.getLogger(__name__)
 # HA validates this before  our handler runs, so we can trust the types and required fields are present.
 # Field notes:
 #   shelf_id    — 
-#   name        — non-empty string; cv.string also strips leading/trailing whitespace
+#   name        — non-empty string; config_validations.string also strips leading/trailing whitespace
 #   description — optional, defaults to an empty string
 #   tags        — optional list of tag dicts with required "name" and optional "value"; defaults to an empty list
 CREATE_BOOK_SCHEMA = vol.Schema(
     {
         vol.Required("shelf_id"): vol.All(int, vol.Range(min=1)), # must be a positive integer (BookStack IDs start at 1)
-        vol.Required("name"): cv.string, # non-empty string; cv.string also strips leading/trailing whitespace
-        vol.Optional("description", default=""): cv.string, # optional, defaults to an empty string
+        vol.Required("name"): config_validations.string, # non-empty string; config_validations.string also strips leading/trailing whitespace
+        vol.Optional("description", default=""): config_validations.string, # optional, defaults to an empty string
         vol.Optional("tags", default=[]): [
             vol.Schema(
                 {
-                    vol.Required("name"): cv.string,
-                    vol.Optional("value", default=""): cv.string,
+                    vol.Required("name"): config_validations.string,
+                    vol.Optional("value", default=""): config_validations.string,
                 }
             )
         ],
@@ -86,14 +86,14 @@ CREATE_PAGE_SCHEMA = vol.Schema(
     {
         vol.Required("book_id"): vol.All(int, vol.Range(min=1)),
         vol.Optional("chapter_id"): vol.All(int, vol.Range(min=1)),
-        vol.Required("name"): cv.string,
-        vol.Optional("html"): cv.string,
-        vol.Optional("markdown"): cv.string,
+        vol.Required("name"): config_validations.string,
+        vol.Optional("html"): config_validations.string,
+        vol.Optional("markdown"): config_validations.string,
         vol.Optional("tags", default=[]): [
             vol.Schema(
                 {
-                    vol.Required("name"): cv.string,
-                    vol.Optional("value", default=""): cv.string,
+                    vol.Required("name"): config_validations.string,
+                    vol.Optional("value", default=""): config_validations.string,
                 }
             )
         ],
@@ -111,13 +111,13 @@ CREATE_PAGE_SCHEMA = vol.Schema(
 APPEND_PAGE_SCHEMA = vol.Schema(
     {
         vol.Required("page_id"): vol.All(int, vol.Range(min=1)),
-        vol.Optional("html"): cv.string,
-        vol.Optional("markdown"): cv.string,
+        vol.Optional("html"): config_validations.string,
+        vol.Optional("markdown"): config_validations.string,
         vol.Optional("tags", default=[]): [
             vol.Schema(
                 {
-                    vol.Required("name"): cv.string,
-                    vol.Optional("value", default=""): cv.string,
+                    vol.Required("name"): config_validations.string,
+                    vol.Optional("value", default=""): config_validations.string,
                 }
             )
         ],
@@ -201,7 +201,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 name=call.data["name"],
                 description=call.data.get("description", ""),
                 tags=call.data.get("tags", []),
-            )
+            ) # type: ignore
 
         hass.services.async_register(
             domain=DOMAIN,
@@ -254,7 +254,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 html=call.data.get("html"),
                 markdown=call.data.get("markdown"),
                 tags=call.data.get("tags", []),
-            )
+            ) # type: ignore
 
         hass.services.async_register(
             domain=DOMAIN,
@@ -301,7 +301,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 html=call.data.get("html"),
                 markdown=call.data.get("markdown"),
                 tags=call.data.get("tags", []),
-            )
+            ) # type: ignore
 
         hass.services.async_register(
             domain=DOMAIN,

@@ -5,8 +5,8 @@ the scan interval (how often the integration polls the BookStack API) and whethe
 options can be updated without needing to re-authenticate or change the connection settings, so we handle them separately from the main 
 config flow.
 """
-import voluptuous as vol
-from homeassistant import config_entries
+import voluptuous as vol # type: ignore
+from homeassistant import config_entries # type: ignore
 from .const import CONF_SCAN_INTERVAL, CONF_PER_SHELF_ENABLED, DEFAULT_SCAN_INTERVAL
 
 

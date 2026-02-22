@@ -7,12 +7,12 @@ credentials, and creates config entries that store the necessary information to 
 
 from __future__ import annotations
 
-import voluptuous as vol
-import aiohttp
+import voluptuous as vol # type: ignore
+import aiohttp # type: ignore
 
-from homeassistant import config_entries
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant import config_entries # type: ignore
+from homeassistant.helpers.aiohttp_client import async_get_clientsession # type: ignore
+from homeassistant.exceptions import ConfigEntryAuthFailed # type: ignore
 
 from .const import (
     DOMAIN,
@@ -26,7 +26,7 @@ from .const import (
 from .options_flow import BookStackOptionsFlow
 
 
-class BookStackConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class BookStackConfigFlow(config_entries.ConfigFlow, domain=DOMAIN): # type: ignore
     """Handle the initial config flow for BookStack.
     
     Inherits from config_entries.ConfigFlow, the base class for all Home Assistant config flows, and defines the steps for setting up 

@@ -14,14 +14,13 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from homeassistant.components.sensor import SensorEntity, SensorStateClass, SensorDeviceClass
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.entity import EntityCategory
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.util import dt as dt_util
+from homeassistant.components.sensor import SensorEntity, SensorStateClass, SensorDeviceClass # type: ignore
+from homeassistant.config_entries import ConfigEntry # type: ignore
+from homeassistant.core import HomeAssistant, callback # type: ignore
+from homeassistant.helpers.entity_platform import AddEntitiesCallback # type: ignore
+from homeassistant.helpers.update_coordinator import CoordinatorEntity # type: ignore
+from homeassistant.helpers.device_registry import DeviceInfo # type: ignore
+from homeassistant.util import dt as dt_util # type: ignore
 
 from .const import DOMAIN
 from .coordinator import BookStackCoordinator
@@ -70,7 +69,7 @@ async def async_setup_entry(
 
     # Start with the static aggregate sensors that show overall counts. We create one BookStackSensor for each key in  STATIC_SENSORS, 
     # passing the coordinator, config entry, data key, name, and icon to the sensor constructor.
-    entities: list[SensorEntity | BinarySensorEntity] = [
+    entities: list[SensorEntity] = [
         BookStackSensor(coordinator, entry, key, name, icon)
         for key, (name, icon) in STATIC_SENSORS.items()
     ]
@@ -88,10 +87,6 @@ async def async_setup_entry(
 
     # Add the latest updated page sensor
     entities.append(BookStackLastUpdatedPageSensor(coordinator, entry))
-
-    # Add the availability binary sensor, which indicates whether the coordinator was able to successfully fetch data from the BookStack 
-    # API on the last update. 
-    entities.append(BookStackAvailabilitySensor(coordinator, entry))
 
     # Call HA to add the entities we created. This will register them with HA and make them available in the UI. The coordinator will 
     # call their update methods when new data is available.
