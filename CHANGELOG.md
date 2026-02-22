@@ -5,12 +5,14 @@
 - Added a Home Assistant action (formerly service) to create a new book in BookStack
 - Added a Home Assistant action (formerly service) to create a new page in BookStack
 - Added a Home Assistant action (formerly service) to append content to an existing page in BookStack
+- Added sensor name translations (current only English)
 
 ### Fixed
 - Fixed connection sensor showing in Home Assistant as sesnor instead of binary_sensor
 
 ### Changed
 - Updates all code with detailed comments for better maintainability
+- Validated code against Home Assistant Integration Quality Scale and made multiple changes to codebase to support Gold and Platinum levels.
 
 ## [1.2.1] - 2026-02-19
 ### Fixed

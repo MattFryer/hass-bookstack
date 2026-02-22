@@ -12,11 +12,12 @@ the coordinator and entities. The functions defined here are:
 - async_unload_entry: Called when the user removes the integration. Unloads all platforms and allows HA to clean up the coordinator and 
     entities.
 
-High-level architecture: 
-    Config Entry 
-        → BookStackCoordinator (polls API and exposed write methods) 
-            → Sensor entities (read data returned from API) 
-            → HA Actions (call coordinator methods to perform actions like creating a book)                                                          
+High-level architecture:
+    Config Entry
+        -> BookStackCoordinator (polls API, exposes write methods)
+            -> Sensor entities (read coordinator data)
+            -> Binary sensor entities (connectivity status)
+            -> HA Actions (create_book, create_page, append_page via coordinator methods)
 """
 
 from __future__ import annotations
@@ -28,14 +29,14 @@ import voluptuous as vol # type: ignore
 from homeassistant.config_entries import ConfigEntry # type: ignore
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse # type: ignore
 from homeassistant.exceptions import ServiceValidationError # type: ignore
-from homeassistant.helpers import config_validations # type: ignore
+from homeassistant.helpers import config_validation # type: ignore
 from homeassistant.helpers.aiohttp_client import async_get_clientsession # type: ignore
 
 from .const import (
-    DOMAIN, 
-    PLATFORMS, 
-    CONF_SCAN_INTERVAL, 
-    CONF_PER_SHELF_ENABLED, 
+    DOMAIN,
+    PLATFORMS,
+    CONF_SCAN_INTERVAL,
+    CONF_PER_SHELF_ENABLED,
     DEFAULT_SCAN_INTERVAL,
     ACTION_CREATE_BOOK,
     ACTION_CREATE_PAGE,
@@ -53,28 +54,27 @@ _LOGGER = logging.getLogger(__name__)
 # HA validates this before  our handler runs, so we can trust the types and required fields are present.
 # Field notes:
 #   shelf_id    — 
-#   name        — non-empty string; config_validations.string also strips leading/trailing whitespace
+#   name        — non-empty string; config_validation.string also strips leading/trailing whitespace
 #   description — optional, defaults to an empty string
 #   tags        — optional list of tag dicts with required "name" and optional "value"; defaults to an empty list
 CREATE_BOOK_SCHEMA = vol.Schema(
     {
         vol.Required("shelf_id"): vol.All(int, vol.Range(min=1)), # must be a positive integer (BookStack IDs start at 1)
-        vol.Required("name"): config_validations.string, # non-empty string; config_validations.string also strips leading/trailing whitespace
-        vol.Optional("description", default=""): config_validations.string, # optional, defaults to an empty string
+        vol.Required("name"): config_validation.string, # non-empty string; config_validation.string also strips leading/trailing whitespace
+        vol.Optional("description", default=""): config_validation.string, # optional, defaults to an empty string
         vol.Optional("tags", default=[]): [
             vol.Schema(
                 {
-                    vol.Required("name"): config_validations.string,
-                    vol.Optional("value", default=""): config_validations.string,
+                    vol.Required("name"): config_validation.string,
+                    vol.Optional("value", default=""): config_validation.string,
                 }
             )
         ],
     }
 )
 
-# Voluptuous schema that validates the data payload when the create_page action is called. Both html and markdown are 
-# optional at the schema level — the coordinator enforces that exactly one must be supplied, since Voluptuous cannot 
-# handle mutual exclusivity.
+# Voluptuous schema that validates the data payload when the create_page action is called. Both html and markdown are optional at the schema 
+# level — the coordinator enforces that exactly one must be supplied, since Voluptuous cannot handle mutual exclusivity.
 # Field notes:
 #   book_id    — required; the book the page will be created in
 #   chapter_id — optional; if supplied the page is nested inside that chapter
@@ -86,14 +86,14 @@ CREATE_PAGE_SCHEMA = vol.Schema(
     {
         vol.Required("book_id"): vol.All(int, vol.Range(min=1)),
         vol.Optional("chapter_id"): vol.All(int, vol.Range(min=1)),
-        vol.Required("name"): config_validations.string,
-        vol.Optional("html"): config_validations.string,
-        vol.Optional("markdown"): config_validations.string,
+        vol.Required("name"): config_validation.string,
+        vol.Optional("html"): config_validation.string,
+        vol.Optional("markdown"): config_validation.string,
         vol.Optional("tags", default=[]): [
             vol.Schema(
                 {
-                    vol.Required("name"): config_validations.string,
-                    vol.Optional("value", default=""): config_validations.string,
+                    vol.Required("name"): config_validation.string,
+                    vol.Optional("value", default=""): config_validation.string,
                 }
             )
         ],
@@ -111,230 +111,137 @@ CREATE_PAGE_SCHEMA = vol.Schema(
 APPEND_PAGE_SCHEMA = vol.Schema(
     {
         vol.Required("page_id"): vol.All(int, vol.Range(min=1)),
-        vol.Optional("html"): config_validations.string,
-        vol.Optional("markdown"): config_validations.string,
+        vol.Optional("html"): config_validation.string,
+        vol.Optional("markdown"): config_validation.string,
         vol.Optional("tags", default=[]): [
             vol.Schema(
                 {
-                    vol.Required("name"): config_validations.string,
-                    vol.Optional("value", default=""): config_validations.string,
+                    vol.Required("name"): config_validation.string,
+                    vol.Optional("value", default=""): config_validation.string,
                 }
             )
         ],
     }
 )
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up BookStack from a config entry.
-    
-    Called by HA when the user adds the integration (or HA restores it on startup). We create the data coordinator here, which will 
-    manage polling the BookStack API and providing data to sensor entities. We also set up the sensor platforms, which will create the 
-    individual sensor entities, and register any integration actions.
+
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Register BookStack service actions at integration load time.
+
+    Actions are registered in async_setup (not async_setup_entry) so they are available immediately on load and never duplicated across 
+    multiple config entries. Each handler resolves the correct coordinator at call-time. This satisfies the Bronze quality-scale rule 
+    'action-setup'.
     """
 
-    # Use HA's aiohttp client session for making HTTP requests to the BookStack API. This ensures that we reuse connections and 
-    # integrate with HA's session management.
+    def _get_coordinator(call: ServiceCall) -> BookStackCoordinator:
+        """Resolve and return the coordinator for the targeted config entry."""
+        entries = hass.config_entries.async_entries(DOMAIN)
+        target_id: str | None = call.data.get("config_entry_id")
+        if target_id:
+            entry = hass.config_entries.async_get_entry(target_id)
+        else:
+            entry = entries[0] if entries else None
+
+        if entry is None:
+            raise ServiceValidationError(
+                "No BookStack config entry found"
+                + (f" with ID '{target_id}'" if target_id else "")
+            )
+
+        coordinator: BookStackCoordinator = entry.runtime_data
+        if not coordinator.is_available:
+            raise ServiceValidationError(
+                "BookStack is currently unavailable. Check the Connectivity sensor and your BookStack server before retrying."
+            )
+        return coordinator
+
+    async def handle_create_book(call: ServiceCall) -> dict:
+        """Handle the bookstack.create_book action."""
+        coordinator = _get_coordinator(call)
+        return await coordinator.async_create_book(
+            shelf_id=call.data["shelf_id"],
+            name=call.data["name"],
+            description=call.data.get("description", ""),
+            tags=call.data.get("tags", []),
+        )
+
+    async def handle_create_page(call: ServiceCall) -> dict:
+        """Handle the bookstack.create_page action."""
+        coordinator = _get_coordinator(call)
+        return await coordinator.async_create_page(
+            book_id=call.data["book_id"],
+            name=call.data["name"],
+            chapter_id=call.data.get("chapter_id"),
+            html=call.data.get("html"),
+            markdown=call.data.get("markdown"),
+            tags=call.data.get("tags", []),
+        )
+
+    async def handle_append_page(call: ServiceCall) -> dict:
+        """Handle the bookstack.append_page action."""
+        coordinator = _get_coordinator(call)
+        return await coordinator.async_append_page(
+            page_id=call.data["page_id"],
+            html=call.data.get("html"),
+            markdown=call.data.get("markdown"),
+            tags=call.data.get("tags", []),
+        )
+
+    hass.services.async_register(
+        domain=DOMAIN,
+        service=ACTION_CREATE_BOOK,
+        service_func=handle_create_book,
+        schema=CREATE_BOOK_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+    hass.services.async_register(
+        domain=DOMAIN,
+        service=ACTION_CREATE_PAGE,
+        service_func=handle_create_page,
+        schema=CREATE_PAGE_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+    hass.services.async_register(
+        domain=DOMAIN,
+        service=ACTION_APPEND_PAGE,
+        service_func=handle_append_page,
+        schema=APPEND_PAGE_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
+    return True
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up a BookStack config entry.
+
+    Creates the coordinator, performs the first refresh (raises ConfigEntryNotReady on failure), stores it on entry.runtime_data, then
+    forwards platform setup to sensor.py and binary_sensor.py.
+    """
     session = async_get_clientsession(hass)
 
-    # Read options from the config entry, using defaults if not set. These options can be updated by the user through the options flow, 
-    # and we'll handle that by reloading the config entry when options change.
     scan_interval = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
     per_shelf_enabled = entry.options.get(CONF_PER_SHELF_ENABLED, True)
 
-    # Instantiate the coordinator, which will handle fetching data from the BookStack API and updating entities. We pass in the necessary
-    # parameters, including the HA instance, HTTP session, config entry data (which contains authentication info), and options returned
-    # above.
     coordinator = BookStackCoordinator(
         hass, session, entry.data, scan_interval, per_shelf_enabled
     )
     await coordinator.async_config_entry_first_refresh()
 
-    # Attach the coordinator to the config entry's runtime_data so that we can access it from sensor entities later. This is a common 
-    # pattern in HA integrations for sharing the coordinator instance across platforms and entities.
     entry.runtime_data = coordinator
 
-    # Set up each of the platforms in the const.py platform list. This will trigger HA to call the async_setup_entry function in each 
-    # platform's module (e.g., sensor.py), where we will create the individual sensor entities.
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    # Register integration actions (formerly known as services). This allows users to call these actions from the HA Developer Tools, 
-    # UI, automations, or scripts.
-
-    # We check has_service before registering to avoid duplicate registration warnings if multiple BookStack config entries exist.
-    # The handler looks up the correct coordinator via the config entry so each BookStack instance is targeted independently.
-    if not hass.services.has_service(DOMAIN, ACTION_CREATE_BOOK):
-
-        async def handle_create_book(call: ServiceCall) -> None:
-            """Handle the bookstack.create_book action call.
-
-            Looks up the coordinator for the target config entry, validates that BookStack is reachable, then delegates to the 
-            coordinator's async_create_book method.
-
-            The action response (the new book's full API data) is returned to the caller so it can be used in automation templates, 
-            e.g.: response = action bookstack.create_book ...
-                  book_id: "{{ response.id }}"
-            """
-            # If the user has multiple BookStack entries, the action call should # include a config_entry_id to target the right one. We 
-            # fall back to this entry's ID when there is only one instance.
-            target_entry_id = call.data.get("config_entry_id", entry.entry_id)
-            target_entry = hass.config_entries.async_get_entry(target_entry_id)
-
-            if target_entry is None:
-                raise ServiceValidationError(
-                    f"No BookStack config entry found with ID '{target_entry_id}'"
-                )
-
-            target_coordinator: BookStackCoordinator = target_entry.runtime_data
-
-            # Prevent from calling the API when BookStack is known to be offline, giving the user a clear error rather than a confusing 
-            # timeout.
-            if not target_coordinator.is_available:
-                raise ServiceValidationError(
-                    "BookStack is currently unavailable. Check the Connectivity "
-                    "sensor and your BookStack server before retrying."
-                )
-
-            # Delegate to the coordinator method which handles the API calls. async_create_book raises ServiceValidationError or 
-            # HomeAssistantError on failure, both of which HA surfaces to the caller automatically.
-            return await target_coordinator.async_create_book(
-                shelf_id=call.data["shelf_id"],
-                name=call.data["name"],
-                description=call.data.get("description", ""),
-                tags=call.data.get("tags", []),
-            ) # type: ignore
-
-        hass.services.async_register(
-            domain=DOMAIN,
-            service=ACTION_CREATE_BOOK,
-            service_func=handle_create_book,
-            schema=CREATE_BOOK_SCHEMA,
-            # supports_response tells HA that this action returns data, making it available as a response variable in automations and 
-            # scripts.
-            supports_response=SupportsResponse.OPTIONAL,
-        )
-
-        # Unregister the action cleanly when the entry is unloaded. Without this, reloading the integration would try to register it a 
-        # second time and log a warning.
-        entry.async_on_unload(
-            lambda: hass.services.async_remove(DOMAIN, ACTION_CREATE_BOOK)
-        )
-
-    if not hass.services.has_service(DOMAIN, ACTION_CREATE_PAGE):
-
-        async def handle_create_page(call: ServiceCall) -> None:
-            """Handle the bookstack.create_page action call.
-
-            Looks up the coordinator for the target config entry, validates that BookStack is reachable, then delegates to the 
-            coordinator's async_create_page method.
-
-            The action response (the new page's full API data) is returned to the caller so it can be used in automation templates, 
-            e.g.:
-                response = action bookstack.create_page ...
-                page_id: "{{ response.id }}"
-            """
-            target_entry_id = call.data.get("config_entry_id", entry.entry_id)
-            target_entry = hass.config_entries.async_get_entry(target_entry_id)
-
-            if target_entry is None:
-                raise ServiceValidationError(
-                    f"No BookStack config entry found with ID '{target_entry_id}'"
-                )
-
-            target_coordinator: BookStackCoordinator = target_entry.runtime_data
-
-            if not target_coordinator.is_available:
-                raise ServiceValidationError(
-                    "BookStack is currently unavailable. Check the Connectivity sensor and your BookStack server before retrying."
-                )
-
-            return await target_coordinator.async_create_page(
-                book_id=call.data["book_id"],
-                name=call.data["name"],
-                chapter_id=call.data.get("chapter_id"),
-                html=call.data.get("html"),
-                markdown=call.data.get("markdown"),
-                tags=call.data.get("tags", []),
-            ) # type: ignore
-
-        hass.services.async_register(
-            domain=DOMAIN,
-            service=ACTION_CREATE_PAGE,
-            service_func=handle_create_page,
-            schema=CREATE_PAGE_SCHEMA,
-            supports_response=SupportsResponse.OPTIONAL,
-        )
-
-        entry.async_on_unload(
-            lambda: hass.services.async_remove(DOMAIN, ACTION_CREATE_PAGE)
-        )
-
-    if not hass.services.has_service(DOMAIN, ACTION_APPEND_PAGE):
-
-        async def handle_append_page(call: ServiceCall) -> None:
-            """Handle the bookstack.append_page action call.
-
-            Looks up the coordinator for the target config entry, validates that BookStack is reachable, then delegates to the 
-            coordinator's async_append_page method.
-
-            The action response (the updated page's full API data) is returned to the caller so it
-            can be used in automation templates, e.g.:
-                response = action bookstack.append_page ...
-                updated_at: "{{ response.updated_at }}"
-            """
-            target_entry_id = call.data.get("config_entry_id", entry.entry_id)
-            target_entry = hass.config_entries.async_get_entry(target_entry_id)
-
-            if target_entry is None:
-                raise ServiceValidationError(
-                    f"No BookStack config entry found with ID '{target_entry_id}'"
-                )
-
-            target_coordinator: BookStackCoordinator = target_entry.runtime_data
-
-            if not target_coordinator.is_available:
-                raise ServiceValidationError(
-                    "BookStack is currently unavailable. Check the Connectivity sensor and your BookStack server before retrying."
-                )
-
-            return await target_coordinator.async_append_page(
-                page_id=call.data["page_id"],
-                html=call.data.get("html"),
-                markdown=call.data.get("markdown"),
-                tags=call.data.get("tags", []),
-            ) # type: ignore
-
-        hass.services.async_register(
-            domain=DOMAIN,
-            service=ACTION_APPEND_PAGE,
-            service_func=handle_append_page,
-            schema=APPEND_PAGE_SCHEMA,
-            supports_response=SupportsResponse.OPTIONAL,
-        )
-
-        entry.async_on_unload(
-            lambda: hass.services.async_remove(DOMAIN, ACTION_APPEND_PAGE)
-        )
-
-    # Set up an update listener for the config entry. This will call the _async_update_listener function whenever the user updates 
-    # options, allowing us to reload the config entry and apply changes without needing to restart HA.
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
 
     return True
 
 
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Handle options updates by reloading the config entry.
-    
-    This is called automatically by HA when the user updates options through the UI. We simply trigger a reload of the config entry, 
-    which will cause the integration to be reloaded with the new options.
-    """
+    """Reload the config entry when options are changed by the user."""
     await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload BookStack entry.
-    
-    This is called by HA when the user removes the integration. We need to unload all platforms to allow HA to clean up the coordinator 
-    and entities.
-    """
+    """Unload a BookStack config entry."""
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)

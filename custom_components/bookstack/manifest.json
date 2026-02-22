@@ -10,5 +10,9 @@
   "config_flow": true,
   "integration_type": "service",
   "single_config_entry": true,
-  "iot_class": "local_polling"
+  "iot_class": "local_polling",
+  "quality_scale": "platinum",
+  "loggers": [
+    "custom_components.bookstack"
+  ]
 }

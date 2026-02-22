@@ -5,6 +5,9 @@ the scan interval (how often the integration polls the BookStack API) and whethe
 options can be updated without needing to re-authenticate or change the connection settings, so we handle them separately from the main 
 config flow.
 """
+
+from __future__ import annotations
+
 import voluptuous as vol # type: ignore
 from homeassistant import config_entries # type: ignore
 from .const import CONF_SCAN_INTERVAL, CONF_PER_SHELF_ENABLED, DEFAULT_SCAN_INTERVAL
@@ -17,7 +20,9 @@ class BookStackOptionsFlow(config_entries.OptionsFlow):
     the options we want to allow the user to edit. The form is pre-filled with the current options values (or defaults if not set).
     """
 
-    async def async_step_init(self, user_input=None):
+    async def async_step_init(
+        self, user_input: dict | None = None
+    ) -> config_entries.ConfigFlowResult:
         """Show the options form and handle user input
         
         Like the config flow, this method is called twice: once with user_input=None to show the form, and then again with user_input 

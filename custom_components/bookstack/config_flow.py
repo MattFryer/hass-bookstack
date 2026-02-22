@@ -1,4 +1,4 @@
-"""Config flow for BookStack integration.
+"""Config flow for the BookStack integration.
 
 This module defines the configuration flow for the BookStack integration, which allows users to set up and configure the integration 
 through the Home Assistant UI rather than manually editing configuration files. The config flow handles user input, validates API 
@@ -50,7 +50,9 @@ class BookStackConfigFlow(config_entries.ConfigFlow, domain=DOMAIN): # type: ign
     # handle upgrading existing config entries. For now, we start at version 1.
     VERSION = 1
 
-    async def async_step_user(self, user_input=None):
+    async def async_step_user(
+        self, user_input: dict | None = None
+    ) -> config_entries.ConfigFlowResult:
         """Handle the initial step where the user provides API credentials and configuration.
         
         HA calls this method when the user initiates the setup of the integration through the UI. We show a form to collect the 
@@ -63,7 +65,7 @@ class BookStackConfigFlow(config_entries.ConfigFlow, domain=DOMAIN): # type: ign
         # error messages to the user. The errors map field names to translation keys defined in the translation files (e.g., 
         # "invalid_auth" or "cannot_connect"). The errors appear at the top of the form and/or next to the relevant fields, depending on 
         # how we set up the form schema and error handling.
-        errors = {}
+        errors: dict[str, str] = {}
 
         if user_input is not None:
             # The user submitted the form, so we need to validate the input. We call the _validate_input method, which will attempt to 
@@ -85,7 +87,9 @@ class BookStackConfigFlow(config_entries.ConfigFlow, domain=DOMAIN): # type: ign
                         CONF_TOKEN_SECRET: user_input[CONF_TOKEN_SECRET],
                     }
                     options = {
-                        CONF_SCAN_INTERVAL: user_input.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+                        CONF_SCAN_INTERVAL: user_input.get(
+                            CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+                        ),
                         CONF_PER_SHELF_ENABLED: user_input.get(CONF_PER_SHELF_ENABLED, True),
                     }
 
@@ -97,7 +101,6 @@ class BookStackConfigFlow(config_entries.ConfigFlow, domain=DOMAIN): # type: ign
                         data=data,
                         options=options,
                     )
-
             except ConfigEntryAuthFailed:
                 # The API returned a 401 Unauthorized response, which means the credentials are invalid. We add an error to the errors 
                 # dictionary with the translation key "invalid_auth".
@@ -129,27 +132,71 @@ class BookStackConfigFlow(config_entries.ConfigFlow, domain=DOMAIN): # type: ign
             description_placeholders={},
         )
 
-    async def async_step_reauth(self, entry_data):
-        """Trigger reauth flow for credential updates.
-        
-        HA triggers this step when the user needs to update their credentials, such as when the API returns a 401 Unauthorized response. 
-        This shows a "Repair required notification in HA and allows the user to update their credentials without needing to delete and 
-        re-add the integration. The flow is similar to the user step, but it pre-fills the form with existing data and updates the 
-        existing config entry instead of creating a new one.
+    async def async_step_reconfigure(
+        self, user_input: dict | None = None
+    ) -> config_entries.ConfigFlowResult:
+        """Handle reconfiguration of URL and credentials post-setup.
+
+        Triggered from Settings -> Devices & Services -> BookStack -> Configure.
+        Satisfies the Gold quality-scale rule 'reconfiguration-flow'.
         """
-        # Return the config entry that needs to be re-authenticated.
+        reconfigure_entry = self._get_reconfigure_entry()
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            try:
+                if await self._validate_input(user_input):
+                    return self.async_update_reload_and_abort(
+                        reconfigure_entry,
+                        data_updates={
+                            CONF_URL: user_input[CONF_URL].rstrip("/"),
+                            CONF_TOKEN_ID: user_input[CONF_TOKEN_ID],
+                            CONF_TOKEN_SECRET: user_input[CONF_TOKEN_SECRET],
+                        },
+                    )
+            except ConfigEntryAuthFailed:
+                errors["base"] = "invalid_auth"
+            except Exception:  # noqa: BLE001
+                errors["base"] = "cannot_connect"
+
+        data_schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_URL,
+                    default=reconfigure_entry.data.get(CONF_URL, ""),
+                ): str,
+                vol.Required(
+                    CONF_TOKEN_ID,
+                    default=reconfigure_entry.data.get(CONF_TOKEN_ID, ""),
+                ): str,
+                vol.Required(CONF_TOKEN_SECRET): str,
+            }
+        )
+
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=data_schema,
+            errors=errors,
+        )
+
+    async def async_step_reauth(
+        self, entry_data: dict
+    ) -> config_entries.ConfigFlowResult:
+        """Trigger reauth when the API returns 401."""
         self._reauth_entry = self.hass.config_entries.async_get_entry(
             self.context["entry_id"]
         )
         # Immediately advance to the reauth_confirm step, which will show the form to update credentials. 
         return await self.async_step_reauth_confirm()
 
-    async def async_step_reauth_confirm(self, user_input=None):
+    async def async_step_reauth_confirm(
+        self, user_input: dict | None = None
+    ) -> config_entries.ConfigFlowResult:
         """Handle the step where the user confirms new credentials for re-authentication.
 
         We only ask for the API token ID and secret, since the URL is unlikely to change and is needed to validate the credentials.   
         """
-        errors = {}
+        errors: dict[str, str] = {}
 
         if user_input is not None:
             new_data = {**self._reauth_entry.data, **user_input}
@@ -169,7 +216,7 @@ class BookStackConfigFlow(config_entries.ConfigFlow, domain=DOMAIN): # type: ign
                     return self.async_abort(reason="reauth_successful")
             except ConfigEntryAuthFailed:
                 errors["base"] = "invalid_auth"
-            except Exception:
+            except Exception:  # noqa: BLE001
                 errors["base"] = "cannot_connect"
 
         # The minimal form for re-authentication only includes the token ID and secret, since the URL is needed to validate the 
@@ -185,7 +232,7 @@ class BookStackConfigFlow(config_entries.ConfigFlow, domain=DOMAIN): # type: ign
             errors=errors,
         )
 
-    async def _validate_input(self, data):
+    async def _validate_input(self, data: dict) -> bool:
         """Validate API credentials by calling the BookStack API
         
         Calls the "/api/system" endpoint which requires authentication and returns system information. If we get a successful response 
@@ -193,9 +240,10 @@ class BookStackConfigFlow(config_entries.ConfigFlow, domain=DOMAIN): # type: ign
         indicate invalid credentials. For any other exceptions (e.g., network issues), we return False to indicate a connection problem.
         """
         session = async_get_clientsession(self.hass)
-
         # BookStack API uses token-based authentication where the token ID and secret are combined in the Authorization header. 
-        headers = {"Authorization": f"Token {data[CONF_TOKEN_ID]}:{data[CONF_TOKEN_SECRET]}"}
+        headers = {
+            "Authorization": f"Token {data[CONF_TOKEN_ID]}:{data[CONF_TOKEN_SECRET]}"
+        }
         # The URL for the system endpoint, using the configured base URL. We ensure there is no trailing slash on the base URL to avoid 
         # issues with double slashes in the final URL.
         url = f"{data[CONF_URL].rstrip('/')}/api/system"
@@ -221,7 +269,9 @@ class BookStackConfigFlow(config_entries.ConfigFlow, domain=DOMAIN): # type: ign
             return False
 
     @staticmethod
-    def async_get_options_flow(config_entry):
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> BookStackOptionsFlow:
         """Return the options flow handler.
         
         HA calls this when the user clicks on the "Options" button for the config entry in the HA UI. This should return an instance of 

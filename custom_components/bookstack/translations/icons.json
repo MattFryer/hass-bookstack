@@ -1,0 +1,39 @@
+{
+  "entity": {
+    "sensor": {
+      "shelves": {
+        "default": "mdi:bookshelf"
+      },
+      "books": {
+        "default": "mdi:book-multiple"
+      },
+      "chapters": {
+        "default": "mdi:book-open"
+      },
+      "pages": {
+        "default": "mdi:file-document-multiple"
+      },
+      "users": {
+        "default": "mdi:account-multiple"
+      },
+      "images": {
+        "default": "mdi:image-multiple"
+      },
+      "attachments": {
+        "default": "mdi:paperclip"
+      },
+      "last_updated_page": {
+        "default": "mdi:file-clock"
+      }
+    },
+    "binary_sensor": {
+      "connectivity": {
+        "default": "mdi:close-network-outline",
+        "state": {
+          "true": "mdi:network",
+          "false": "mdi:close-network-outline"
+        }
+      }
+    }
+  }
+}

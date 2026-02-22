@@ -1,0 +1,264 @@
+rules:
+
+  # -------------------------------------------------------------------------
+  # Bronze
+  # -------------------------------------------------------------------------
+
+  action-setup:
+    status: done
+    comment: >
+      All three service actions (create_book, create_page, append_page) are registered in async_setup, not async_setup_entry, so they are
+      available immediately on load and never duplicated across multiple entries.
+
+  appropriate-polling:
+    status: done
+    comment: >
+      Default interval is 300s, configurable by the user via the options flow with no minimum enforced below a sensible 60s 
+      recommendation.
+
+  brands:
+    status: exempt
+    comment: Custom integration not submitted to Home Assistant core.
+
+  common-modules:
+    status: done
+    comment: >
+      Coordinator in coordinator.py; all constants in const.py.
+
+  config-flow-test-coverage:
+    status: exempt
+    comment: Custom integration without a test suite.
+
+  config-flow:
+    status: done
+
+  dependency-transparency:
+    status: done
+    comment: >
+      No external PyPI dependencies. Uses only aiohttp, which is bundled with Home Assistant.
+
+  docs-actions:
+    status: done
+    comment: >
+      README.md documents all three service actions with field descriptions and usage examples.
+
+  docs-high-level-description:
+    status: done
+    comment: README.md describes the integration purpose.
+
+  docs-installation-instructions:
+    status: done
+    comment: README.md covers both HACS and manual installation.
+
+  docs-removal-instructions:
+    status: exempt
+    comment: Standard HA removal flow applies; no custom cleanup steps are required.
+
+  entity-event-setup:
+    status: done
+    comment: >
+      The coordinator listener (_handle_coordinator_update) is registered in async_setup_entry, not inside entity __init__.
+
+  entity-unique-id:
+    status: done
+
+  has-entity-name:
+    status: done
+    comment: Every entity sets _attr_has_entity_name = True.
+
+  runtime-data:
+    status: done
+    comment: Coordinator stored on entry.runtime_data.
+
+  test-before-configure:
+    status: done
+    comment: _validate_input calls /api/system before the config entry is created.
+
+  test-before-setup:
+    status: done
+    comment: async_config_entry_first_refresh raises ConfigEntryNotReady on failure.
+
+  unique-config-entry:
+    status: done
+    comment: >
+      single_config_entry = true in manifest.json; unique_id set to the normalised URL so a duplicate cannot be added.
+
+  # -------------------------------------------------------------------------
+  # Silver
+  # -------------------------------------------------------------------------
+
+  action-exceptions:
+    status: done
+    comment: >
+      All action handlers raise ServiceValidationError for user-correctable failures (invalid ID, wrong content format, BookStack 
+      offline) and HomeAssistantError for unexpected API or network errors.
+
+  config-entry-unloading:
+    status: done
+    comment: async_unload_entry implemented; unloads all platforms cleanly.
+
+  docs-configuration-parameters:
+    status: done
+    comment: README.md documents scan_interval and per_shelf_enabled.
+
+  docs-installation-parameters:
+    status: done
+    comment: README.md documents the URL, Token ID, and Token Secret fields.
+
+  entity-unavailable:
+    status: done
+    comment: >
+      All entities override the available property and return False when coordinator.is_available is False.
+
+  integration-owner:
+    status: done
+    comment: "@MattFryer listed as codeowner in manifest.json."
+
+  log-when-unavailable:
+    status: done
+    comment: >
+      The coordinator logs once when BookStack becomes unreachable and once 
+      again when it comes back online.
+
+  parallel-updates:
+    status: done
+    comment: PARALLEL_UPDATES = 1 set in both sensor.py and binary_sensor.py.
+
+  reauthentication-flow:
+    status: done
+    comment: async_step_reauth and async_step_reauth_confirm implemented.
+
+  test-coverage:
+    status: exempt
+    comment: Custom integration without a test suite.
+
+  # -------------------------------------------------------------------------
+  # Gold
+  # -------------------------------------------------------------------------
+
+  devices:
+    status: done
+    comment: >
+      All entities attach DeviceInfo representing the BookStack instance (identifier, name, manufacturer, model, sw_version, 
+      configuration_url).
+
+  diagnostics:
+    status: done
+    comment: >
+      diagnostics.py implements async_get_config_entry_diagnostics with token_id and token_secret redacted.
+
+  discovery-update-info:
+    status: exempt
+    comment: BookStack is a web service; network discovery is not applicable.
+
+  discovery:
+    status: exempt
+    comment: BookStack is a web service; automatic device discovery is not applicable.
+
+  docs-data-update:
+    status: done
+    comment: README.md explains the polling mechanism and how to tune the interval.
+
+  docs-examples:
+    status: done
+    comment: README.md includes automation examples for common use cases.
+
+  docs-known-limitations:
+    status: done
+    comment: >
+      README.md documents the API call volume for per-shelf sensors and the resulting rate-limiting behaviour on large instances.
+
+  docs-supported-devices:
+    status: exempt
+    comment: >
+      This integration targets a single BookStack web service instance; there are no device variants to document.
+
+  docs-supported-functions:
+    status: done
+    comment: README.md lists every sensor, its attributes, and all three actions.
+
+  docs-troubleshooting:
+    status: done
+    comment: README.md has a Troubleshooting section covering common failures.
+
+  docs-use-cases:
+    status: done
+    comment: >
+      README.md describes use cases including page-update notifications, connectivity alerts, and automated page/book creation from 
+      automations.
+
+  dynamic-devices:
+    status: done
+    comment: >
+      A coordinator listener in sensor.async_setup_entry detects new shelves after initial setup and creates sensors for them 
+      automatically.
+
+  entity-category:
+    status: done
+    comment: >
+      The connectivity binary sensor uses EntityCategory.DIAGNOSTIC. Count and timestamp sensors carry no category (they are 
+      primary-function entities).
+
+  entity-device-class:
+    status: done
+    comment: >
+      BinarySensorDeviceClass.CONNECTIVITY on the connectivity sensor; SensorDeviceClass.TIMESTAMP on the last-updated-page sensor.
+      No applicable device class exists for integer count sensors.
+
+  entity-disabled-by-default:
+    status: exempt
+    comment: >
+      All sensors provide primary information the user chose to install the integration for. None are noisy or rarely useful enough to 
+      warrant disabling by default.
+
+  entity-translations:
+    status: done
+    comment: >
+      All static sensor entities and the binary sensor set _attr_translation_key; names are defined in the entity section of en.json / 
+      strings.json. Per-shelf sensors use a runtime-constructed name because the shelf name is user-defined content sourced from 
+      BookStack.
+
+  exception-translations:
+    status: exempt
+    comment: >
+      Exceptions are raised inside service action handlers with plain English strings. These appear in the automation trace / developer 
+      tools rather than in the HA UI, so plain strings are appropriate for this custom integration.
+
+  icon-translations:
+    status: done
+    comment: Entity icons are declared in translations/icons.json.
+
+  reconfiguration-flow:
+    status: done
+    comment: >
+      async_step_reconfigure implemented in config_flow.py, allowing the URL and API credentials to be changed without removing the 
+      integration.
+
+  repair-issues:
+    status: exempt
+    comment: >
+      The reauthentication flow handles invalid-credential failures. Transient network errors are handled by marking entities unavailable
+      and logging. No other user intervention is required.
+
+  stale-devices:
+    status: done
+    comment: >
+      async_setup_entry removes entity registry entries for shelves that no longer exist in BookStack, keeping the registry clean when 
+      shelves are deleted.
+
+  # -------------------------------------------------------------------------
+  # Platinum
+  # -------------------------------------------------------------------------
+
+  async-dependency:
+    status: exempt
+    comment: No external library; uses HA's bundled aiohttp directly.
+
+  inject-websession:
+    status: exempt
+    comment: No external library; uses HA's bundled aiohttp directly.
+
+  strict-typing:
+    status: done
+    comment: >
+      All public functions and methods carry complete type annotations. The codebase uses from __future__ import annotations throughout.

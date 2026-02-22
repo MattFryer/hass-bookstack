@@ -17,7 +17,9 @@ from homeassistant.helpers.device_registry import DeviceInfo # type: ignore
 from .const import DOMAIN
 from .coordinator import BookStackCoordinator
 
-# Limit entity updates to one at a time.
+# Only allow a single sensor update at a time to avoid HA warnings about overlapping updates. This is important because the coordinator 
+# updates all sensors when it fetches new data, and we don't want multiple sensors trying to update simultaneously if the coordinator fetches 
+# data more frequently than the sensor update time.
 PARALLEL_UPDATES = 1
 
 
@@ -30,7 +32,7 @@ async def async_setup_entry(
 
     Called by HA when the \"binary_sensor\" platform is being set up for this integration. We create the connectivity binary sensor 
     entity here.
-    """
+"""
     coordinator: BookStackCoordinator = entry.runtime_data
     async_add_entities([BookStackConnectivitySensor(coordinator, entry)])
 
@@ -58,19 +60,19 @@ class BookStackConnectivitySensor(CoordinatorEntity[BookStackCoordinator], Binar
     Shown under the Diagnostic section of the device page. State: on = reachable, off = unreachable.
     """
 
-    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY  # Gives the sensor the correct device class in HA which affects the icon and how the values are displayed ("connected" or "disconnected")
-    _attr_entity_category = EntityCategory.DIAGNOSTIC  # Causes the sensor to be shown in the "Diagnostics" section of the device page in HA
+    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_has_entity_name = True
-    _attr_icon = "mdi:close-network-outline"
+    _attr_translation_key = "connectivity"  # resolved via strings.json entity section
 
     def __init__(
         self,
         coordinator: BookStackCoordinator,
         entry: ConfigEntry,
     ) -> None:
+        """Initialise the connectivity sensor."""
         super().__init__(coordinator)
-        self._attr_name = "Connectivity"
-        self._attr_unique_id = f"{entry.entry_id}_availability"
+        self._attr_unique_id = f"{entry.entry_id}_connectivity"
         self._attr_device_info = _device_info(coordinator, entry)
 
     @property
