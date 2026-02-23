@@ -272,8 +272,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 The below are possible future additions and improvements to the integration. To add your own, please [raise an issue](https://github.com/MattFryer/hass-bookstack/issues) describing the desired functionality.
 
-- Submit icon/logo to the [Home Assistant Brands repository](https://github.com/home-assistant/brands) - SUBMITTED - Awaiting review and merge
+- Submit icon/logo to the [Home Assistant Brands repository](https://github.com/home-assistant/brands) - [SUBMITTED](https://github.com/home-assistant/brands/pull/9734) - Awaiting review and merge
 - Submit integration for [inclusion in HACS](https://www.hacs.xyz/docs/publish/integration/)
-- Add sensor(s) for the number of draft pages
-- Add an action(s) to create a page in a specific book/chapter or to update an existing one. 
-- Add an action of appending content to an existing page.
