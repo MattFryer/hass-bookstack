@@ -44,6 +44,8 @@ from .const import (
 )
 from .coordinator import BookStackCoordinator
 
+CONFIG_SCHEMA = config_validation.config_entry_only_config_schema(DOMAIN)
+
 # Set up logging for the integration. This allows us to log important information and errors, which can be helpful for debugging and 
 # monitoring the integration. Using __name__ produces "custom_components.bookstack" which makes log entries easy to filter in the HA 
 # log viewer.

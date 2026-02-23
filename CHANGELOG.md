@@ -3,9 +3,11 @@
 ## [1.3.2] - 2026-02-23
 ### Added
 - Added support for configuring multiple BookStack instances
+- Added French and German translations
 
 ### Fixed
 - Fixed incorrect manifest.json key order
+- Fixed missing CONFIG_SCHEMA definition
 
 ## [1.3.1] - 2026-02-22
 ### Added
