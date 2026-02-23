@@ -6,6 +6,7 @@
 
 ### Fixed
 - Fixed connection sensor showing in Home Assistant as sesnor instead of binary_sensor
+- Fixed error messages not showing in Home Assistant config dialog 
 
 ### Changed
 - Validated code against Home Assistant Integration Quality Scale and made multiple changes to codebase to support Gold and Platinum levels.
