@@ -1,0 +1,105 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Se connecter à BookStack",
+        "data": {
+          "url": "URL BookStack",
+          "token_id": "Identifiant du token API",
+          "token_secret": "Secret du token API",
+          "scan_interval": "Intervalle d'interrogation (secondes)",
+          "per_shelf_enabled": "Activer les capteurs par étagère"
+        },
+        "data_description": {
+          "url": "L'URL de base de votre instance BookStack, p. ex. {example_url}",
+          "token_id": "Disponible dans votre profil BookStack -> Tokens API",
+          "token_secret": "Disponible dans votre profil BookStack -> Tokens API",
+          "scan_interval": "Fréquence d'interrogation de BookStack pour les mises à jour. Minimum recommandé : 60 secondes.",
+          "per_shelf_enabled": "Crée des capteurs individuels affichant le nombre de livres, chapitres et pages par étagère."
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigurer BookStack",
+        "description": "Mettre à jour les détails de connexion de votre instance BookStack.",
+        "data": {
+          "url": "URL BookStack",
+          "token_id": "Identifiant du token API",
+          "token_secret": "Secret du token API"
+        },
+        "data_description": {
+          "url": "L'URL de base de votre instance BookStack, p. ex. {example_url}",
+          "token_id": "Disponible dans votre profil BookStack -> Tokens API",
+          "token_secret": "Disponible dans votre profil BookStack -> Tokens API"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Ré-authentification avec BookStack",
+        "description": "Vos identifiants API BookStack doivent être mis à jour.",
+        "data": {
+          "token_id": "Identifiant du token API",
+          "token_secret": "Secret du token API"
+        },
+        "data_description": {
+          "token_id": "Disponible dans votre profil BookStack -> Tokens API",
+          "token_secret": "Disponible dans votre profil BookStack -> Tokens API"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Identifiants API invalides. Vérifiez votre identifiant de token et votre secret de token.",
+      "cannot_connect": "Impossible de se connecter à BookStack. Vérifiez l'URL et réessayez."
+    },
+    "abort": {
+      "already_configured": "Cette instance BookStack est déjà configurée.",
+      "reauth_successful": "La ré-authentification a réussi."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options BookStack",
+        "data": {
+          "scan_interval": "Intervalle d'interrogation (secondes)",
+          "per_shelf_enabled": "Activer les capteurs par étagère"
+        },
+        "data_description": {
+          "scan_interval": "Fréquence d'interrogation de BookStack pour les mises à jour. Minimum recommandé : 60 secondes.",
+          "per_shelf_enabled": "Crée des capteurs individuels affichant le nombre de livres, chapitres et pages par étagère."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "shelves": {
+        "name": "Étagères"
+      },
+      "books": {
+        "name": "Livres"
+      },
+      "chapters": {
+        "name": "Chapitres"
+      },
+      "pages": {
+        "name": "Pages"
+      },
+      "users": {
+        "name": "Utilisateurs"
+      },
+      "images": {
+        "name": "Images"
+      },
+      "attachments": {
+        "name": "Pièces jointes"
+      },
+      "last_updated_page": {
+        "name": "Page mise à jour récemment"
+      }
+    },
+    "binary_sensor": {
+      "connectivity": {
+        "name": "Connectivité"
+      }
+    }
+  }
+}
