@@ -132,7 +132,9 @@ class BookStackConfigFlow(config_entries.ConfigFlow, domain=DOMAIN): # type: ign
             # The description_placeholders can be used to provide additional context or instructions for the user, which can be helpful 
             # for fields that might be confusing. In this case, we don't have any placeholders, but we could add some in the future if 
             # needed (e.g., explaining how to generate API tokens in BookStack).
-            description_placeholders={},
+            description_placeholders={
+                "example_url": "https://bookstack.example.com",
+            },
         )
 
     async def async_step_reconfigure(
@@ -182,6 +184,9 @@ class BookStackConfigFlow(config_entries.ConfigFlow, domain=DOMAIN): # type: ign
             step_id="reconfigure",
             data_schema=data_schema,
             errors=errors,
+            description_placeholders={
+                "example_url": "https://bookstack.example.com"
+            },
         )
 
     async def async_step_reauth(
