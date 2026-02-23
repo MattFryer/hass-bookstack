@@ -142,7 +142,7 @@ async def async_setup_entry(
 def _device_info(coordinator: BookStackCoordinator, entry: ConfigEntry) -> DeviceInfo:
     """Return shared DeviceInfo for all BookStack entities."""
     return DeviceInfo(
-        identifiers={(DOMAIN, coordinator.system_data.get("instance_id", entry.entry_id))},
+        identifiers={(DOMAIN, entry.entry_id)},
         name=f"BookStack ({entry.data['url']})",
         manufacturer="BookStack",
         model="BookStack",

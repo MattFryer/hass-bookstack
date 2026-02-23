@@ -68,14 +68,15 @@ class BookStackConfigFlow(config_entries.ConfigFlow, domain=DOMAIN): # type: ign
         errors: dict[str, str] = {}
 
         if user_input is not None:
+            # Use the normalised URL (without trailing slash) as the unique ID for this config entry. This ensures that if the 
+            # user tries to set up the same instance twice, it will be detected and aborted.
+            await self.async_set_unique_id(user_input[CONF_URL].rstrip("/"))
+            self._abort_if_unique_id_configured()
+            
             # The user submitted the form, so we need to validate the input. We call the _validate_input method, which will attempt to 
             # connect to the BookStack API with the provided credentials.
             try:
                 if await self._validate_input(user_input):
-                    # Use the normalised URL (without trailing slash) as the unique ID for this config entry. This ensures that if the 
-                    # user tries to set up the same instance twice, it will be detected and aborted.
-                    await self.async_set_unique_id(user_input[CONF_URL].rstrip("/"))
-                    self._abort_if_unique_id_configured()
 
                     # Define the config into two buckets, data and options. Data contains the required information for connecting to 
                     # the API (URL and credentials), while options contain optional settings like scan interval and per-shelf enabled 
@@ -222,7 +223,7 @@ class BookStackConfigFlow(config_entries.ConfigFlow, domain=DOMAIN): # type: ign
                     errors["base"] = "cannot_connect"
             except ConfigEntryAuthFailed:
                 errors["base"] = "invalid_auth"
-            except Exception:  # noqa: BLE001
+            except Exception:
                 errors["base"] = "cannot_connect"
 
         # The minimal form for re-authentication only includes the token ID and secret, since the URL is needed to validate the 
