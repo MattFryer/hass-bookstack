@@ -197,10 +197,18 @@ After the action runs, the ```response_variable``` will contain all information 
 
 ### Append to a page
 Append additional contents to an existing page in BookStack:
+```yaml
+action: bookstack.append_page
+data:
+  page_id: 5
+  markdown: |
+    ## This is a new title added
+    This is some new content appended by Home Assistant.
+  tags:
+    - name: priority
+      value: high
 ```
-
-```
-Additional content in either ```markdown``` or ```html``` will be appended to the bottom of the page. Any ```tags``` specified will be added to the page. Duplicate tags (i.e. those already assigned to the page) will be simply ignored.
+Additional content in either ```markdown``` or ```html``` will be appended to the bottom of the page. Any ```tags``` specified will be added to the page. Duplicate tags (i.e. those already assigned to the page) will be simply ignored. New tags will be added.
 > [!CAUTION]
 > The BookStack API behaviour around HTML and Markdown content is limiting. If the page was created in markdown then the API will return both a markdown and HTML version of the page. If it was created in HTML then the API will only return a HTML version of the page and the markdown element will be blank. Because of this, if the action is configured with the markdown element then the integration will first check if the page has existing markdown content, and if not, the action call will fail.
 
