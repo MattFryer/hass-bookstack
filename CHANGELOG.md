@@ -4,6 +4,7 @@
 ### Added
 - Added support for configuring multiple BookStack instances
 - Added French and German translations
+- Added local brand icons to support changes in Home Assistant 2026.3.0 [https://developers.home-assistant.io/blog/2026/02/24/brands-proxy-api/](https://developers.home-assistant.io/blog/2026/02/24/brands-proxy-api/)
 
 ### Fixed
 - Fixed incorrect manifest.json key order
