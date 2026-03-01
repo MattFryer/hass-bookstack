@@ -13,6 +13,6 @@
   ],
   "quality_scale": "platinum",
   "requirements": [],
-  "single_config_entry": true,
+  "single_config_entry": false,
   "version": "1.3.2"  
 }
