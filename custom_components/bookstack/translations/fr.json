@@ -8,14 +8,16 @@
           "token_id": "Identifiant du token API",
           "token_secret": "Secret du token API",
           "scan_interval": "Intervalle d'interrogation (secondes)",
-          "per_shelf_enabled": "Activer les capteurs par étagère"
+          "per_shelf_enabled": "Activer les capteurs par étagère",
+          "verify_ssl": "Vérifier le certificat SSL/TLS"
         },
         "data_description": {
           "url": "L'URL de base de votre instance BookStack, p. ex. {example_url}",
           "token_id": "Disponible dans votre profil BookStack -> Tokens API",
           "token_secret": "Disponible dans votre profil BookStack -> Tokens API",
           "scan_interval": "Fréquence d'interrogation de BookStack pour les mises à jour. Minimum recommandé : 60 secondes.",
-          "per_shelf_enabled": "Crée des capteurs individuels affichant le nombre de livres, chapitres et pages par étagère."
+          "per_shelf_enabled": "Crée des capteurs individuels affichant le nombre de livres, chapitres et pages par étagère.",
+          "verify_ssl": "Désactivez uniquement si votre instance BookStack utilise un certificat auto-signé ou interne. Il est fortement recommandé de laisser cette option activée."
         }
       },
       "reconfigure": {
@@ -24,12 +26,14 @@
         "data": {
           "url": "URL BookStack",
           "token_id": "Identifiant du token API",
-          "token_secret": "Secret du token API"
+          "token_secret": "Secret du token API",
+          "verify_ssl": "Vérifier le certificat SSL/TLS"
         },
         "data_description": {
           "url": "L'URL de base de votre instance BookStack, p. ex. {example_url}",
           "token_id": "Disponible dans votre profil BookStack -> Tokens API",
-          "token_secret": "Disponible dans votre profil BookStack -> Tokens API"
+          "token_secret": "Disponible dans votre profil BookStack -> Tokens API",
+          "verify_ssl": "Désactivez uniquement si votre instance BookStack utilise un certificat auto-signé ou interne. Il est fortement recommandé de laisser cette option activée."
         }
       },
       "reauth_confirm": {
@@ -47,6 +51,7 @@
     },
     "error": {
       "invalid_auth": "Identifiants API invalides. Vérifiez votre identifiant de token et votre secret de token.",
+      "ssl_error": "La vérification du certificat SSL a échoué. Si votre instance BookStack utilise un certificat auto-signé ou interne, désactivez l’option “Vérifier le certificat SSL/TLS” dans les paramètres de configuration.",
       "cannot_connect": "Impossible de se connecter à BookStack. Vérifiez l'URL et réessayez."
     },
     "abort": {

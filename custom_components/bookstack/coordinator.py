@@ -16,7 +16,8 @@ from homeassistant.core import HomeAssistant # type: ignore
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed # type: ignore
 from homeassistant.exceptions import ConfigEntryAuthFailed # type: ignore
 
-from .const import DEFAULT_SCAN_INTERVAL
+# Import constants from the const.py file
+from .const import DEFAULT_SCAN_INTERVAL, DEFAULT_VERIFY_SSL
 
 # Set up logging for the integration. This allows us to log important information and errors, which can be helpful for debugging and 
 # monitoring the integration. Using __name__ produces "custom_components.bookstack" which makes log entries easy to filter in the HA 
@@ -57,6 +58,9 @@ class BookStackCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.session = session
         self.config = config
         self.per_shelf_enabled = per_shelf_enabled
+        # Determine the ssl parameter for aiohttp requests. When verify_ssl is False we pass ssl=False to skip certificate verification. 
+        # When True (the default) we pass ssl=None which lets aiohttp use its default SSL context (i.e. verify certs).
+        self._ssl: bool | None = None if config.get("verify_ssl", DEFAULT_VERIFY_SSL) else False
         # Instance attributes to hold the fetched data. We initialize them to None or empty structures, and they will be populated 
         # when _async_update_data is called.
         self.version: str | None = None # The version of the BookStack instance, fetched from the /system endpoint.
@@ -87,7 +91,7 @@ class BookStackCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             """Helper function to make authenticated GET requests to the API and return the JSON response. Centralises the logic and 
             error handling for API requests."""
             url = f"{base_url}/api/{endpoint.lstrip('/')}"
-            async with self.session.get(url, headers=headers, timeout=timeout) as resp:
+            async with self.session.get(url, headers=headers, timeout=timeout, ssl=self._ssl) as resp:
                 if resp.status == 401:
                     raise ConfigEntryAuthFailed("Invalid API credentials")
                 if resp.status != 200:
@@ -289,7 +293,7 @@ class BookStackCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         books_url = f"{base_url}/api/books" # Set the endpoint for creating the book
         try:
             async with self.session.post(
-                books_url, headers=headers, json=book_payload, timeout=timeout
+                books_url, headers=headers, json=book_payload, timeout=timeout, ssl=self._ssl
             ) as resp:
                 if resp.status == 401:
                     raise HomeAssistantError(
@@ -327,7 +331,7 @@ class BookStackCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         shelf_url = f"{base_url}/api/shelves/{shelf_id}" # Endpoint for fetching and updating the shelf.
         try:
             async with self.session.get(
-                shelf_url, headers=headers, timeout=timeout
+                shelf_url, headers=headers, timeout=timeout, ssl=self._ssl
             ) as resp:
                 if resp.status == 404:
                     # If the shelf doesn't exist, log the orphaned book ID so the user can find and clean it up.
@@ -367,7 +371,7 @@ class BookStackCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Make the PUT request to update the shelf
         try:
             async with self.session.put(
-                shelf_url, headers=headers, json=shelf_payload, timeout=timeout
+                shelf_url, headers=headers, json=shelf_payload, timeout=timeout, ssl=self._ssl
             ) as resp:
                 if resp.status not in (200, 204):
                     # If we don't get a success status code, raise an error. The book will have been created but not assigned to the 
@@ -482,7 +486,7 @@ class BookStackCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         pages_url = f"{base_url}/api/pages"
         try:
             async with self.session.post(
-                pages_url, headers=headers, json=page_payload, timeout=timeout
+                pages_url, headers=headers, json=page_payload, timeout=timeout, ssl=self._ssl
             ) as resp:
                 if resp.status == 401:
                     raise HomeAssistantError(
@@ -583,7 +587,7 @@ class BookStackCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         # Step 1: Fetch the existing page so we can read its current content and tags.
         try:
-            async with self.session.get(page_url, headers=headers, timeout=timeout) as resp:
+            async with self.session.get(page_url, headers=headers, timeout=timeout, ssl=self._ssl) as resp:
                 if resp.status == 404:
                     raise ServiceValidationError(
                         f"Page with ID {page_id} was not found in BookStack."
@@ -665,7 +669,7 @@ class BookStackCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Handle the outcome of writing the new version of the page back to the API.
         try:
             async with self.session.put(
-                page_url, headers=headers, json=put_payload, timeout=timeout
+                page_url, headers=headers, json=put_payload, timeout=timeout, ssl=self._ssl
             ) as resp:
                 if resp.status == 401:
                     raise HomeAssistantError(

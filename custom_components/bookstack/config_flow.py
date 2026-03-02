@@ -6,6 +6,7 @@ credentials, and creates config entries that store the necessary information to 
 """
 
 from __future__ import annotations
+from xml.parsers.expat import errors
 
 import voluptuous as vol # type: ignore
 import aiohttp # type: ignore
@@ -21,7 +22,9 @@ from .const import (
     CONF_TOKEN_SECRET,
     CONF_SCAN_INTERVAL,
     CONF_PER_SHELF_ENABLED,
+    CONF_VERIFY_SSL,
     DEFAULT_SCAN_INTERVAL,
+    DEFAULT_VERIFY_SSL,
 )
 from .options_flow import BookStackOptionsFlow
 
@@ -86,6 +89,7 @@ class BookStackConfigFlow(config_entries.ConfigFlow, domain=DOMAIN): # type: ign
                         CONF_URL: user_input[CONF_URL].rstrip("/"),
                         CONF_TOKEN_ID: user_input[CONF_TOKEN_ID],
                         CONF_TOKEN_SECRET: user_input[CONF_TOKEN_SECRET],
+                        CONF_VERIFY_SSL: user_input.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL),
                     }
                     options = {
                         CONF_SCAN_INTERVAL: user_input.get(
@@ -108,6 +112,11 @@ class BookStackConfigFlow(config_entries.ConfigFlow, domain=DOMAIN): # type: ign
                 # The API returned a 401 Unauthorized response, which means the credentials are invalid. We add an error to the errors 
                 # dictionary with the translation key "invalid_auth".
                 errors["base"] = "invalid_auth"
+            except aiohttp.ClientSSLError:
+                # An SSL/TLS error occurred, which likely means there is an issue with the SSL/TLS certificate (e.g., self-signed, expired).
+                # We add an error with the key "ssl_error" to indicate this specific issue. In the future, we could enhance this by providing 
+                # more detailed error messages based on the specific SSL error encountered.
+                errors["base"] = "ssl_error"
             except Exception:
                 # Any other exception (e.g., network error, timeout) is treated as a connection issue. We add an error with the key
                 # "cannot_connect".
@@ -121,6 +130,7 @@ class BookStackConfigFlow(config_entries.ConfigFlow, domain=DOMAIN): # type: ign
             vol.Required(CONF_TOKEN_SECRET): str,
             vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): int,
             vol.Optional(CONF_PER_SHELF_ENABLED, default=True): bool,
+            vol.Optional(CONF_VERIFY_SSL, default=DEFAULT_VERIFY_SSL): bool,
         })
 
         # Render the form to the user. If there were validation errors, they will be displayed on the form. The data_schema defines the 
@@ -157,12 +167,15 @@ class BookStackConfigFlow(config_entries.ConfigFlow, domain=DOMAIN): # type: ign
                             CONF_URL: user_input[CONF_URL].rstrip("/"),
                             CONF_TOKEN_ID: user_input[CONF_TOKEN_ID],
                             CONF_TOKEN_SECRET: user_input[CONF_TOKEN_SECRET],
+                            CONF_VERIFY_SSL: user_input.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL),
                         },
                     )
                 else:
                     errors["base"] = "cannot_connect"
             except ConfigEntryAuthFailed:
                 errors["base"] = "invalid_auth"
+            except aiohttp.ClientSSLError:
+                errors["base"] = "ssl_error"
             except Exception:
                 errors["base"] = "cannot_connect"
 
@@ -177,6 +190,10 @@ class BookStackConfigFlow(config_entries.ConfigFlow, domain=DOMAIN): # type: ign
                     default=reconfigure_entry.data.get(CONF_TOKEN_ID, ""),
                 ): str,
                 vol.Required(CONF_TOKEN_SECRET): str,
+                vol.Optional(
+                    CONF_VERIFY_SSL,
+                    default=reconfigure_entry.data.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL),
+                ): bool,
             }
         )
 
@@ -228,6 +245,8 @@ class BookStackConfigFlow(config_entries.ConfigFlow, domain=DOMAIN): # type: ign
                     errors["base"] = "cannot_connect"
             except ConfigEntryAuthFailed:
                 errors["base"] = "invalid_auth"
+            except aiohttp.ClientSSLError:
+                errors["base"] = "ssl_error"
             except Exception:
                 errors["base"] = "cannot_connect"
 
@@ -261,9 +280,12 @@ class BookStackConfigFlow(config_entries.ConfigFlow, domain=DOMAIN): # type: ign
         url = f"{data[CONF_URL].rstrip('/')}/api/system"
         # Define a short timeout so the form doesn't hang for too long if there are connection issues. 
         timeout = aiohttp.ClientTimeout(total=10)
+        # Determine whether to verify SSL certificates. When verify_ssl is False we pass ssl=False to aiohttp, which disables
+        # certificate verification. This is useful for self-signed or internal certificates.
+        ssl = data.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL) or False
 
         try:
-            async with session.get(url, headers=headers, timeout=timeout) as resp: # Make the HTTP GET request to the API
+            async with session.get(url, headers=headers, timeout=timeout, ssl=ssl) as resp: # Make the HTTP GET request to the API
                 if resp.status == 401:
                     # The API explicitly rejected the credentials
                     raise ConfigEntryAuthFailed
@@ -276,6 +298,8 @@ class BookStackConfigFlow(config_entries.ConfigFlow, domain=DOMAIN): # type: ign
                 return "version" in json_data
         except ConfigEntryAuthFailed:
             raise # Let the caller handle this specific exception to show an "invalid_auth" error message
+        except aiohttp.ClientSSLError:
+            raise # Let the caller handle this specific exception to show an "ssl_error" error message
         except aiohttp.ClientError:
             # Handle any network level errors (e.g., connection refused, DNS failure) as a connection issue
             raise Exception("cannot_connect") from aiohttp.ClientError

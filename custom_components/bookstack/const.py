@@ -23,10 +23,12 @@ CONF_TOKEN_SECRET = "token_secret" # BookStack API token secret (acts like a pas
 # They can be changed at any time without needing to re-authenticate, as they do not affect the connection to the BookStack API.
 CONF_SCAN_INTERVAL = "scan_interval" # How often to update the data from BookStack, in seconds.
 CONF_PER_SHELF_ENABLED = "per_shelf_enabled" # Whether to create individual sensors for each shelf in BookStack.
+CONF_VERIFY_SSL = "verify_ssl" # Whether to verify SSL/TLS certificates when connecting to the BookStack API. Disable only for self-signed or internal certificates.
 
 # Default values for options
 # These are the default values for the options if the user does not specify them during setup or through the options flow.
 DEFAULT_SCAN_INTERVAL = 300
+DEFAULT_VERIFY_SSL = True
 
 # Action (service) constants
 # These constants represent the names of the services (actions) that this integration provides. They should match the top-level keys 

@@ -8,14 +8,16 @@
           "token_id": "API Token ID",
           "token_secret": "API Token Secret",
           "scan_interval": "Scan interval (seconds)",
-          "per_shelf_enabled": "Enable per-shelf sensors"
+          "per_shelf_enabled": "Enable per-shelf sensors",
+          "verify_ssl": "Verify SSL/TLS certificate"
         },
         "data_description": {
           "url": "The base URL of your BookStack instance, e.g. {example_url}",
           "token_id": "Found under your BookStack profile -> API Tokens",
           "token_secret": "Found under your BookStack profile -> API Tokens",
           "scan_interval": "How often to poll BookStack for updated data. Minimum recommended: 60 seconds.",
-          "per_shelf_enabled": "Creates individual sensors showing book, chapter, and page counts per shelf."
+          "per_shelf_enabled": "Creates individual sensors showing book, chapter, and page counts per shelf.",
+          "verify_ssl": "Disable only if your BookStack instance uses a self-signed or internal certificate. Leaving this enabled is strongly recommended."
         }
       },
       "reconfigure": {
@@ -24,12 +26,14 @@
         "data": {
           "url": "BookStack URL",
           "token_id": "API Token ID",
-          "token_secret": "API Token Secret"
+          "token_secret": "API Token Secret",
+          "verify_ssl": "Verify SSL/TLS certificate"
         },
         "data_description": {
           "url": "The base URL of your BookStack instance, e.g. {example_url}",
           "token_id": "Found under your BookStack profile -> API Tokens",
-          "token_secret": "Found under your BookStack profile -> API Tokens"
+          "token_secret": "Found under your BookStack profile -> API Tokens",
+          "verify_ssl": "Disable only if your BookStack instance uses a self-signed or internal certificate. Leaving this enabled is strongly recommended."
         }
       },
       "reauth_confirm": {
@@ -47,6 +51,7 @@
     },
     "error": {
       "invalid_auth": "Invalid API credentials. Check your Token ID and Token Secret.",
+      "ssl_error": "SSL certificate verification failed. If your BookStack instance uses a self-signed or internal certificate, disable 'Verify SSL/TLS certificate' in the setup options.",
       "cannot_connect": "Unable to connect to BookStack. Check the URL and try again."
     },
     "abort": {

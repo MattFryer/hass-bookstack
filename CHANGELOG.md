@@ -1,6 +1,10 @@
 # Changelog
 
-## [1.3.2] - 2026-02-23
+## [1.3.5] - 2026-03-03
+### Added 
+- Option to ignore TLS certificate errors when connecting to a BookStack instance
+
+## [1.3.2] - 2026-03-01
 ### Added
 - Added support for configuring multiple BookStack instances
 - Added French and German translations
