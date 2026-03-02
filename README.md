@@ -51,6 +51,9 @@ For each shelf in your BookStack instance, the following sensors will be created
   - `page_url`: URL linking directly to the page
 - **Connectivity**: Diagnostic sensor showing BookStack availability
 
+> [!NOTE]
+> The integration supports translation of all sensor names. Get in touch if you'd like to help translate the integration into your language!
+
 ### Actions (formerly Services)
 
 The integration provides the following Home Assistant actions:
