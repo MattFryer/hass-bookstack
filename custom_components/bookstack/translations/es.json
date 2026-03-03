@@ -1,0 +1,110 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Conectar a BookStack",
+        "data": {
+          "url": "URL de BookStack",
+          "token_id": "ID del token de API",
+          "token_secret": "Secreto del token de API",
+          "scan_interval": "Intervalo de escaneo (segundos)",
+          "per_shelf_enabled": "Activar sensores por estantería",
+          "verify_ssl": "Verificar certificado SSL/TLS"
+        },
+        "data_description": {
+          "url": "La URL base de tu instancia de BookStack, p. ej. {example_url}",
+          "token_id": "Se encuentra en tu perfil de BookStack -> Tokens de API",
+          "token_secret": "Se encuentra en tu perfil de BookStack -> Tokens de API",
+          "scan_interval": "Con qué frecuencia se consulta BookStack para obtener datos actualizados. Mínimo recomendado: 60 segundos.",
+          "per_shelf_enabled": "Crea sensores individuales que muestran el recuento de libros, capítulos y páginas por estantería.",
+          "verify_ssl": "Desactiva esta opción solo si tu instancia de BookStack usa un certificado autofirmado o interno. Se recomienda encarecidamente mantenerla activada."
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigurar BookStack",
+        "description": "Actualiza los datos de conexión de tu instancia de BookStack.",
+        "data": {
+          "url": "URL de BookStack",
+          "token_id": "ID del token de API",
+          "token_secret": "Secreto del token de API",
+          "verify_ssl": "Verificar certificado SSL/TLS"
+        },
+        "data_description": {
+          "url": "La URL base de tu instancia de BookStack, p. ej. {example_url}",
+          "token_id": "Se encuentra en tu perfil de BookStack -> Tokens de API",
+          "token_secret": "Se encuentra en tu perfil de BookStack -> Tokens de API",
+          "verify_ssl": "Desactiva esta opción solo si tu instancia de BookStack usa un certificado autofirmado o interno. Se recomienda encarecidamente mantenerla activada."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Volver a autenticarse con BookStack",
+        "description": "Las credenciales de la API de BookStack deben actualizarse.",
+        "data": {
+          "token_id": "ID del token de API",
+          "token_secret": "Secreto del token de API"
+        },
+        "data_description": {
+          "token_id": "Se encuentra en tu perfil de BookStack -> Tokens de API",
+          "token_secret": "Se encuentra en tu perfil de BookStack -> Tokens de API"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Credenciales de API no válidas. Comprueba tu ID de token y secreto de token.",
+      "ssl_error": "Error en la verificación del certificado SSL. Si tu instancia de BookStack usa un certificado autofirmado o interno, desactiva 'Verificar certificado SSL/TLS' en las opciones de configuración.",
+      "cannot_connect": "No se puede conectar a BookStack. Comprueba la URL e inténtalo de nuevo."
+    },
+    "abort": {
+      "already_configured": "Esta instancia de BookStack ya está configurada.",
+      "reauth_successful": "La reautenticación se realizó correctamente."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opciones de BookStack",
+        "data": {
+          "scan_interval": "Intervalo de escaneo (segundos)",
+          "per_shelf_enabled": "Activar sensores por estantería"
+        },
+        "data_description": {
+          "scan_interval": "Con qué frecuencia se consulta BookStack para obtener datos actualizados. Mínimo recomendado: 60 segundos.",
+          "per_shelf_enabled": "Crea sensores individuales que muestran el recuento de libros, capítulos y páginas por estantería."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "shelves": {
+        "name": "Estanterías"
+      },
+      "books": {
+        "name": "Libros"
+      },
+      "chapters": {
+        "name": "Capítulos"
+      },
+      "pages": {
+        "name": "Páginas"
+      },
+      "users": {
+        "name": "Usuarios"
+      },
+      "images": {
+        "name": "Imágenes"
+      },
+      "attachments": {
+        "name": "Archivos adjuntos"
+      },
+      "last_updated_page": {
+        "name": "Última página actualizada"
+      }
+    },
+    "binary_sensor": {
+      "connectivity": {
+        "name": "Conectividad"
+      }
+    }
+  }
+}
