@@ -1,0 +1,110 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "连接到 BookStack",
+        "data": {
+          "url": "BookStack 网址",
+          "token_id": "API 令牌 ID",
+          "token_secret": "API 令牌密钥",
+          "scan_interval": "扫描间隔（秒）",
+          "per_shelf_enabled": "启用每个书架的传感器",
+          "verify_ssl": "验证 SSL/TLS 证书"
+        },
+        "data_description": {
+          "url": "您的 BookStack 实例的基础网址，例如 {example_url}",
+          "token_id": "在您的 BookStack 个人资料 -> API 令牌 中找到",
+          "token_secret": "在您的 BookStack 个人资料 -> API 令牌 中找到",
+          "scan_interval": "轮询 BookStack 获取更新数据的频率。建议最小值：60 秒。",
+          "per_shelf_enabled": "创建单独的传感器，显示每个书架的书籍、章节和页面数量。",
+          "verify_ssl": "仅当您的 BookStack 实例使用自签名或内部证书时才禁用此选项。强烈建议保持启用状态。"
+        }
+      },
+      "reconfigure": {
+        "title": "重新配置 BookStack",
+        "description": "更新您的 BookStack 实例的连接详情。",
+        "data": {
+          "url": "BookStack 网址",
+          "token_id": "API 令牌 ID",
+          "token_secret": "API 令牌密钥",
+          "verify_ssl": "验证 SSL/TLS 证书"
+        },
+        "data_description": {
+          "url": "您的 BookStack 实例的基础网址，例如 {example_url}",
+          "token_id": "在您的 BookStack 个人资料 -> API 令牌 中找到",
+          "token_secret": "在您的 BookStack 个人资料 -> API 令牌 中找到",
+          "verify_ssl": "仅当您的 BookStack 实例使用自签名或内部证书时才禁用此选项。强烈建议保持启用状态。"
+        }
+      },
+      "reauth_confirm": {
+        "title": "重新验证 BookStack",
+        "description": "您的 BookStack API 凭据需要更新。",
+        "data": {
+          "token_id": "API 令牌 ID",
+          "token_secret": "API 令牌密钥"
+        },
+        "data_description": {
+          "token_id": "在您的 BookStack 个人资料 -> API 令牌 中找到",
+          "token_secret": "在您的 BookStack 个人资料 -> API 令牌 中找到"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "API 凭据无效。请检查您的令牌 ID 和令牌密钥。",
+      "ssl_error": "SSL 证书验证失败。如果您的 BookStack 实例使用自签名或内部证书，请在设置选项中禁用'验证 SSL/TLS 证书'。",
+      "cannot_connect": "无法连接到 BookStack。请检查网址后重试。"
+    },
+    "abort": {
+      "already_configured": "此 BookStack 实例已配置。",
+      "reauth_successful": "重新验证成功。"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "BookStack 选项",
+        "data": {
+          "scan_interval": "扫描间隔（秒）",
+          "per_shelf_enabled": "启用每个书架的传感器"
+        },
+        "data_description": {
+          "scan_interval": "轮询 BookStack 获取更新数据的频率。建议最小值：60 秒。",
+          "per_shelf_enabled": "创建单独的传感器，显示每个书架的书籍、章节和页面数量。"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "shelves": {
+        "name": "书架"
+      },
+      "books": {
+        "name": "书籍"
+      },
+      "chapters": {
+        "name": "章节"
+      },
+      "pages": {
+        "name": "页面"
+      },
+      "users": {
+        "name": "用户"
+      },
+      "images": {
+        "name": "图片"
+      },
+      "attachments": {
+        "name": "附件"
+      },
+      "last_updated_page": {
+        "name": "最近更新页面"
+      }
+    },
+    "binary_sensor": {
+      "connectivity": {
+        "name": "连接状态"
+      }
+    }
+  }
+}
