@@ -237,6 +237,11 @@ class BookStackShelfSensor(CoordinatorEntity[BookStackCoordinator], SensorEntity
     def available(self) -> bool:
         """Return False when BookStack was unreachable on the last poll."""
         return self.coordinator.is_available and super().available
+    
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the BookStack shelf ID as an entity attribute."""
+        return {"shelf_id": self._shelf_id}
 
 
 class BookStackLastUpdatedPageSensor(CoordinatorEntity[BookStackCoordinator], SensorEntity):

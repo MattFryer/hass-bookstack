@@ -4,6 +4,7 @@
 ### Added 
 - Option to ignore TLS certificate errors when connecting to a BookStack instance
 - Update entity to track if a newer version of BookStack is available verses the installed version. Note that updating BookStack from Home Assistant is not possible and thus is not supported.
+- Added the BookStack shelf ID as an attribute to the per shelf sensors (if enabled)
 
 ## [1.3.2] - 2026-03-01
 ### Added
