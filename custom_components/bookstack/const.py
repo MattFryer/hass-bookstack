@@ -9,7 +9,7 @@ integration in the future.
 DOMAIN = "bookstack"
 
 # The HA platforms that this integration uses.
-PLATFORMS = ["sensor", "binary_sensor"]
+PLATFORMS = ["sensor", "binary_sensor", "update"]
 
 # Configuration keys
 # These are the authentication keys that users will use in their configuration.yaml or through the UI when setting up the integration.
@@ -29,6 +29,10 @@ CONF_VERIFY_SSL = "verify_ssl" # Whether to verify SSL/TLS certificates when con
 # These are the default values for the options if the user does not specify them during setup or through the options flow.
 DEFAULT_SCAN_INTERVAL = 300
 DEFAULT_VERIFY_SSL = True
+
+# GitHub Releases API endpoint for the latest BookStack release.
+GITHUB_LATEST_RELEASE_URL = "https://api.github.com/repos/BookStackApp/BookStack/releases/latest"
+
 
 # Action (service) constants
 # These constants represent the names of the services (actions) that this integration provides. They should match the top-level keys 

@@ -4,9 +4,13 @@ Integrate your BookStack instance with Home Assistant to monitor content statist
 
 ## Features
 
-### Sensors
+The integration provides the following sensors in Home Assistant:
 
-**Aggregate Statistics**
+> [!NOTE]
+> The integration supports translation of all sensor names. Get in touch if you'd like to help translate the integration into your language!
+
+### Aggregate Sensors
+
 - **Shelves**: Total number of shelves
 - **Books**: Total number of books
 - **Chapters**: Total number of chapters
@@ -15,13 +19,15 @@ Integrate your BookStack instance with Home Assistant to monitor content statist
 - **Images**: Total number of images in the gallery
 - **Attachments**: Total number of file attachments
 
-**Per-Shelf Monitoring**
+### Per-Shelf Sensors (when enabled)
+
 For each shelf in your BookStack instance, the following sensors will be created:
 - **{Shelf Name} Books**: Number of books on this shelf
 - **{Shelf Name} Chapters**: Number of chapters across all books on this shelf
 - **{Shelf Name} Pages**: Number of pages across all books on this shelf
 
-**Additional Sensors**
+### Additional Sensors
+
 - **Last Updated Page**: Timestamp of the most recently updated page, with additional attributes:
   - `page_name`: Name of the updated page
   - `page_id`: BookStack page ID of the page
@@ -29,12 +35,17 @@ For each shelf in your BookStack instance, the following sensors will be created
   - `updated_by_id`: BookStack user ID of the user who updated it
   - `page_url`: URL linking directly to the page
 - **Connectivity**: Diagnostic sensor showing BookStack availability
+- **Update**: Indicates if a newer version of BookStack is available
+
+> [!NOTE]
+> Upgrading BookStack from Home Assistant is not possible and thus is not supported by the update entity.
 
 ### Actions (formerly Services)
 
-- **Create a Book**: Create a new book in BookStack
-- **Create a Page**: Create a new page in a specified book in BookStack
-- **Append to a Page**: Append additional content to the end of an existing page in BookStack
+The integration provides the following Home Assistant actions:
+- ```bookstack.create_book```: Create a new Book in BookStack and assign it to a Shelf.
+- ```bookstack.create_page```: Create a new Page in a specific Book in BookStack.
+- ```bookstack.append_page```: Appends content and tags to an existing Page in BookStack.
 
 
 ## Quick Start

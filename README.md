@@ -24,6 +24,9 @@ If you just want to show your appreciation, you can sponsor the project or send 
 
 The integration provides the following sensors in Home Assistant:
 
+> [!NOTE]
+> The integration supports translation of all sensor names. Get in touch if you'd like to help translate the integration into your language!
+
 ### Aggregate Sensors
 
 - **Shelves**: Total number of shelves
@@ -50,9 +53,10 @@ For each shelf in your BookStack instance, the following sensors will be created
   - `updated_by_id`: BookStack user ID of the user who updated it
   - `page_url`: URL linking directly to the page
 - **Connectivity**: Diagnostic sensor showing BookStack availability
+- **Update**: Indicates if a newer version of BookStack is available
 
 > [!NOTE]
-> The integration supports translation of all sensor names. Get in touch if you'd like to help translate the integration into your language!
+> Upgrading BookStack from Home Assistant is not possible and thus is not supported by the update entity.
 
 ### Actions (formerly Services)
 

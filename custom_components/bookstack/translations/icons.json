@@ -34,6 +34,15 @@
           "false": "mdi:close-network-outline"
         }
       }
+    },
+    "update": {
+      "bookstack_update": {
+        "default": "mdi:package",
+        "state": {
+          "true": "mdi:package-up",
+          "false": "mdi:package"
+        }
+      }
     }
   }
 }

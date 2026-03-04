@@ -105,6 +105,11 @@
       "connectivity": {
         "name": "连接状态"
       }
+    },
+    "update": {
+      "bookstack_update": {
+        "name": "BookStack 更新"
+      }
     }
   }
 }

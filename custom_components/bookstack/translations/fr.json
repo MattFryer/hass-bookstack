@@ -105,6 +105,11 @@
       "connectivity": {
         "name": "Connectivité"
       }
+    },
+    "update": {
+      "bookstack_update": {
+        "name": "Mise à jour de BookStack"
+      }
     }
   }
 }

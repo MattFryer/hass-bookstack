@@ -1,8 +1,9 @@
 # Changelog
 
-## [1.3.5] - 2026-03-03
+## [1.4.0] - 2026-03-03
 ### Added 
 - Option to ignore TLS certificate errors when connecting to a BookStack instance
+- Update entity to track if a newer version of BookStack is available verses the installed version. Note that updating BookStack from Home Assistant is not possible and thus is not supported.
 
 ## [1.3.2] - 2026-03-01
 ### Added

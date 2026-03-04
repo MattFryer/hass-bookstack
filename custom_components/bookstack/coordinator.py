@@ -17,7 +17,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.exceptions import ConfigEntryAuthFailed # type: ignore
 
 # Import constants from the const.py file
-from .const import DEFAULT_SCAN_INTERVAL, DEFAULT_VERIFY_SSL
+from .const import DEFAULT_SCAN_INTERVAL, DEFAULT_VERIFY_SSL, GITHUB_LATEST_RELEASE_URL
 
 # Set up logging for the integration. This allows us to log important information and errors, which can be helpful for debugging and 
 # monitoring the integration. Using __name__ produces "custom_components.bookstack" which makes log entries easy to filter in the HA 
@@ -69,6 +69,8 @@ class BookStackCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.last_updated_page: dict[str, Any] = {} # Data about the most recently updated page, including its name, update time, and who updated it.
         self.is_available: bool = False # Availability status of the coordinator, which can be used by entities to determine if they should be marked as unavailable. This is set based on whether we can successfully fetch data from the API.
         self._was_available: bool | None = None # Track the previous availability status to log when the API goes down or comes back up.
+        self.latest_version: str | None = None  # Latest BookStack version available on GitHub.
+        self.latest_release_url: str | None = None  # GitHub release page URL for the latest version.
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from BookStack API
@@ -126,6 +128,10 @@ class BookStackCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # System info - Gives us the BookStack version and checks the connection/authentication.
             self.system_data = await get_json("system")
             self.version = self.system_data.get("version", "Unknown")
+
+            # Fetch the latest BookStack release from GitHub to power the update entity. This is done on every coordinator poll so update 
+            # notifications appear promptly. Failures are logged but do not affect coordinator availability or sensor data.
+            await self._async_fetch_latest_github_release()
 
             # Standard counts - Fetches the total counts of shelves, books, chapters, pages, users, images, and attachments using the 
             # count helper function. This is efficient as it avoids fetching all items when we only need the count.
@@ -231,7 +237,51 @@ class BookStackCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # Wrap the original exception in an UpdateFailed to signal to the DataUpdateCoordinator that the update failed due to a 
             # connection issue. This will trigger the retry logic based on the update interval.
             raise UpdateFailed(f"Connection error: {err}") from err
+
         
+    async def _async_fetch_latest_github_release(self) -> None:
+        """Fetch the latest BookStack release tag and page URL from the GitHub releases API.
+
+        Updates self.latest_version and self.latest_release_url in-place. A failure (network error, rate-limit, unexpected response) 
+        is logged at WARNING level and leaves the previous values unchanged so the update entity does not flap to unknown on a 
+        transient GitHub outage.
+
+        GitHub returns the most recent non-prerelease, non-draft release at:
+            GET https://api.github.com/repos/BookStackApp/BookStack/releases/latest
+
+        The response includes:
+            tag_name  - the version tag, e.g. "v24.10.2"
+            html_url  - the URL of the release page on GitHub
+        """
+        timeout = aiohttp.ClientTimeout(total=10)
+        # A descriptive User-Agent is required by the GitHub API terms of service.
+        headers = {"User-Agent": "hass-bookstack-integration"}
+        try:
+            async with self.session.get(
+                GITHUB_LATEST_RELEASE_URL, headers=headers, timeout=timeout
+            ) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    tag = data.get("tag_name", "")
+                    # GitHub tags are prefixed with "v" (e.g. "v24.10.2"). The BookStack /api/system endpoint returns a bare version 
+                    # string (e.g. "24.10.2"), so we strip the leading "v" for a consistent comparison.
+                    self.latest_version = tag.lstrip("v") if tag else None
+                    self.latest_release_url = data.get("html_url")
+                elif resp.status == 403:
+                    _LOGGER.warning(
+                        "GitHub API rate limit reached while checking for BookStack updates. The update entity will retry on the next poll."
+                    )
+                else:
+                    _LOGGER.warning(
+                        "Unexpected GitHub API response while checking for BookStack updates (HTTP %s). The update entity will retry on the next poll.",
+                        resp.status,
+                    )
+        except aiohttp.ClientError as err:
+            _LOGGER.warning(
+                "Could not reach GitHub to check for BookStack updates: %s. The update entity will retry on the next poll.",
+                err,
+            )
+
     async def async_create_book(
         self,
         shelf_id: int,
