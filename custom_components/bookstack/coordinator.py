@@ -263,9 +263,7 @@ class BookStackCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 if resp.status == 200:
                     data = await resp.json()
                     tag = data.get("tag_name", "")
-                    # GitHub tags are prefixed with "v" (e.g. "v24.10.2"). The BookStack /api/system endpoint returns a bare version 
-                    # string (e.g. "24.10.2"), so we strip the leading "v" for a consistent comparison.
-                    self.latest_version = tag.lstrip("v") if tag else None
+                    self.latest_version = tag.lstrip("v") if tag else None # GitHub tags are prefixed with "v" (e.g. "v24.10.2"). The BookStack /api/system endpoint returns a bare version string (e.g. "24.10.2"), so we strip the leading "v" for a consistent comparison.
                     self.latest_release_url = data.get("html_url")
                 elif resp.status == 403:
                     _LOGGER.warning(
