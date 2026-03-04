@@ -748,3 +748,118 @@ class BookStackCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # change.  Instead we just return the updated page data to the caller so we can use it in our automation response/templates 
         # if needed.
         return updated_page
+    
+    async def async_list_books(
+        self,
+        shelf_id: int | None = None,
+    ) -> list[dict]:
+        """Return a list of books from BookStack with their key metadata.
+
+        Fetches all books via the paginated GET /api/books endpoint and returns a list of dicts, each containing:
+            id           - BookStack internal book ID
+            name         - display name of the book
+            shelf_id     - ID of the shelf the book is assigned to, or None
+            shelf_name   - display name of the shelf, or None
+            updated_at   - ISO 8601 timestamp of the last modification
+
+        Arguments:
+            shelf_id: Optional. When provided, only books assigned to this shelf are returned. When omitted, all books are returned.
+
+        Returns:
+            A list of book dicts, filtered by shelf_id when supplied.
+
+        Raises:
+            ServiceValidationError: if shelf_id is provided but not found.
+            HomeAssistantError:     on unexpected API errors or network failures.
+        """
+        from homeassistant.exceptions import HomeAssistantError, ServiceValidationError  # type: ignore
+
+        headers = {
+            "Authorization": f"Token {self.config['token_id']}:{self.config['token_secret']}",
+        }
+        base_url = self.config["url"].rstrip("/")
+        timeout = aiohttp.ClientTimeout(total=10)
+
+        async def get_json(endpoint: str) -> dict:
+            """Make an authenticated GET request and return the JSON response."""
+            url = f"{base_url}/api/{endpoint.lstrip('/')}"
+            try:
+                async with self.session.get(url, headers=headers, timeout=timeout, ssl=self._ssl) as resp:
+                    if resp.status == 401:
+                        raise HomeAssistantError("BookStack rejected the request: invalid API credentials")
+                    if resp.status == 404:
+                        return {}
+                    if resp.status != 200:
+                        raise HomeAssistantError(f"Unexpected response from BookStack (HTTP {resp.status})")
+                    return await resp.json()
+            except (HomeAssistantError, ServiceValidationError):
+                raise
+            except aiohttp.ClientError as err:
+                raise HomeAssistantError(f"Could not connect to BookStack: {err}") from err
+
+        # If filtering by shelf, validate the shelf exists up front so we can give a clear error rather than silently returning an 
+        # empty list.
+        shelf_book_ids: set[int] | None = None
+        if shelf_id is not None:
+            shelf_data = await get_json(f"shelves/{shelf_id}")
+            if not shelf_data:
+                raise ServiceValidationError(f"Shelf with ID {shelf_id} was not found in BookStack.")
+            
+            shelf_book_ids = {b["id"] for b in shelf_data.get("books", [])} # Collect the IDs of books on this shelf so we can filter efficiently without a separate API call per book.
+
+        # Build a shelf lookup map (book_id -> {shelf_id, shelf_name}) from the shelves the coordinator already has cached. This 
+        # avoids additional API calls for the common case and is refreshed on every coordinator poll. We use this to populate 
+        # shelf_id/shelf_name on each book result.
+        book_to_shelf: dict[int, dict] = {}
+        for shelf in self.shelves_data:
+            # shelves_data stores {id, name, book_count, ...} but not the book IDs, so we need a fresh shelf detail call only when 
+            # shelves_data is empty (e.g. per_shelf_enabled is False). In that case we fall back to the shelf detail already fetched 
+            # above (if shelf_id was given) or skip shelf attribution entirely for the all-books case.
+            pass
+
+        # Fetch all shelves to build the book->shelf map. We always need this to attribute books to shelves in the response, 
+        # regardless of filtering.
+        all_shelves_resp = await get_json("shelves?count=500")
+        for shelf_summary in all_shelves_resp.get("data", []):
+            shelf_detail = await get_json(f"shelves/{shelf_summary['id']}")
+            for book in shelf_detail.get("books", []):
+                book_to_shelf[book["id"]] = {
+                    "shelf_id":   shelf_summary["id"],
+                    "shelf_name": shelf_summary["name"],
+                }
+
+        # Fetch all books with pagination (BookStack max page size is 500).
+        all_books: list[dict] = []
+        offset = 0
+        page_size = 500
+        while True:
+            try:
+                resp = await get_json(f"books?count={page_size}&offset={offset}")
+            except aiohttp.ClientError as err:
+                raise HomeAssistantError(f"Could not connect to BookStack to list books: {err}") from err
+            batch = resp.get("data", [])
+            all_books.extend(batch)
+            if len(all_books) >= resp.get("total", 0) or not batch:
+                break
+            offset += page_size
+
+        # Build and optionally filter the result list.
+        results: list[dict] = []
+        for book in all_books:
+            book_id = book["id"]
+
+            # Apply shelf filter when requested.
+            if shelf_book_ids is not None and book_id not in shelf_book_ids:
+                continue
+
+            shelf_info = book_to_shelf.get(book_id, {})
+            results.append({
+                "id":         book_id,
+                "name":       book.get("name"),
+                "shelf_id":   shelf_info.get("shelf_id"),
+                "shelf_name": shelf_info.get("shelf_name"),
+                "updated_at": book.get("updated_at"),
+            })
+
+        _LOGGER.debug("list_books returned %d books (shelf_id filter: %s)", len(results), shelf_id)
+        return {"books": results}

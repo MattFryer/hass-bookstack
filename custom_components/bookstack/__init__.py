@@ -41,6 +41,7 @@ from .const import (
     ACTION_CREATE_BOOK,
     ACTION_CREATE_PAGE,
     ACTION_APPEND_PAGE,
+    ACTION_LIST_BOOKS,
 )
 from .coordinator import BookStackCoordinator
 
@@ -126,6 +127,14 @@ APPEND_PAGE_SCHEMA = vol.Schema(
     }
 )
 
+# Voluptuous schema for the list_books action. shelf_id is entirely optional; when omitted all books are returned, when provided only 
+# books on that shelf are returned.
+LIST_BOOKS_SCHEMA = vol.Schema(
+    {
+        vol.Optional("shelf_id"): vol.All(int, vol.Range(min=1)),
+    }
+)
+
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Register BookStack service actions at integration load time.
@@ -189,6 +198,13 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
             tags=call.data.get("tags", []),
         )
 
+    async def handle_list_books(call: ServiceCall) -> dict:
+        """Handle the bookstack.list_books action."""
+        coordinator = _get_coordinator(call)
+        return await coordinator.async_list_books(
+            shelf_id=call.data.get("shelf_id"),
+        )
+
     hass.services.async_register(
         domain=DOMAIN,
         service=ACTION_CREATE_BOOK,
@@ -209,6 +225,13 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         service_func=handle_append_page,
         schema=APPEND_PAGE_SCHEMA,
         supports_response=SupportsResponse.OPTIONAL,
+    )
+    hass.services.async_register(
+        domain=DOMAIN,
+        service=ACTION_LIST_BOOKS,
+        service_func=handle_list_books,
+        schema=LIST_BOOKS_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
     )
 
     return True

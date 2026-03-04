@@ -189,3 +189,23 @@ append_page:
           value: "production"
       selector:
         object:
+
+list_books:
+  name: List Books
+  description: >
+    Returns a list of books from BookStack, each with its ID, name, assigned shelf (if any), and last modified date. Optionally filter by shelf ID to return only 
+    books on a specific shelf. Always returns a response and is intended for use in automation templates.
+
+  fields:
+
+    shelf_id:
+      name: Shelf ID
+      description: >
+        Optional. When provided, only books assigned to this shelf are returned. When omitted, all books are returned. You can find a shelf's ID in its URL in the 
+        BookStack web UI (e.g. /shelves/5 → ID is 5), or from the per-shelf sensor attributes.
+      required: false
+      example: 5
+      selector:
+        number:
+          min: 1
+          mode: box

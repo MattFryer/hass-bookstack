@@ -40,3 +40,4 @@ GITHUB_LATEST_RELEASE_URL = "https://api.github.com/repos/BookStackApp/BookStack
 ACTION_CREATE_BOOK = "create_book"
 ACTION_CREATE_PAGE = "create_page"
 ACTION_APPEND_PAGE = "append_page"
+ACTION_LIST_BOOKS = "list_books"
