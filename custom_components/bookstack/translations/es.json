@@ -99,6 +99,15 @@
       },
       "last_updated_page": {
         "name": "Última página actualizada"
+      },
+      "shelf_books": {
+        "name": "{shelf_name} Libros"
+      },
+      "shelf_chapters": {
+        "name": "{shelf_name} Capítulos"
+      },
+      "shelf_pages": {
+        "name": "{shelf_name} Páginas"
       }
     },
     "binary_sensor": {

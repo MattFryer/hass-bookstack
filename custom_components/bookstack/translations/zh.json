@@ -99,6 +99,15 @@
       },
       "last_updated_page": {
         "name": "最近更新页面"
+      },
+      "shelf_books": {
+        "name": "{shelf_name} 书籍"
+      },
+      "shelf_chapters": {
+        "name": "{shelf_name} 章节"
+      },
+      "shelf_pages": {
+        "name": "{shelf_name} 页面"
       }
     },
     "binary_sensor": {

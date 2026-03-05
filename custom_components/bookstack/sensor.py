@@ -48,11 +48,12 @@ STATIC_SENSORS: dict[str, tuple[str, str]] = {
     "attachments": ("attachments", "mdi:paperclip"),
 }
 
-# (data_key, translation_key_suffix, unique_id_suffix, icon)
+# (data_key, translation_key, unique_id_suffix, icon) translation_key links to "entity.sensor.shelf_<key>.name" in strings.json, which uses 
+# a {shelf_name} placeholder supplied at runtime.
 SHELF_SENSOR_TYPES: list[tuple[str, str, str, str]] = [
-    ("book_count",    "books",    "books",    "mdi:book-multiple"),
-    ("chapter_count", "chapters", "chapters", "mdi:book-open"),
-    ("page_count",    "pages",    "pages",    "mdi:file-document-multiple"),
+    ("book_count",    "shelf_books",    "books",    "mdi:book-multiple"),
+    ("chapter_count", "shelf_chapters", "chapters", "mdi:book-open"),
+    ("page_count",    "shelf_pages",    "pages",    "mdi:file-document-multiple"),
 ]
 
 
@@ -191,8 +192,7 @@ class BookStackSensor(CoordinatorEntity[BookStackCoordinator], SensorEntity):
 class BookStackShelfSensor(CoordinatorEntity[BookStackCoordinator], SensorEntity):
     """Numeric sensor for one metric (books, chapters, or pages) on a specific shelf.
 
-    Created dynamically per shelf; the shelf name is user-defined content from
-    BookStack so the entity name is built at runtime rather than via a
+    Created dynamically per shelf; the shelf name is user-defined content from BookStack so the entity name is built at runtime rather than via a
     translation key.
     """
 
@@ -205,7 +205,7 @@ class BookStackShelfSensor(CoordinatorEntity[BookStackCoordinator], SensorEntity
         entry: ConfigEntry,
         shelf: dict[str, Any],
         data_key: str,
-        name_suffix: str,
+        translation_key: str,
         id_suffix: str,
         icon: str,
     ) -> None:
@@ -213,9 +213,10 @@ class BookStackShelfSensor(CoordinatorEntity[BookStackCoordinator], SensorEntity
         super().__init__(coordinator)
         self._shelf_id: int = shelf["id"]
         self._data_key = data_key
-        # Dynamic name: shelf name + metric suffix (e.g. "Home Network Books").
-        # No translation_key here because the shelf name is user content.
-        self._attr_name = f"{shelf['name']} {name_suffix.capitalize()}"
+        # Use a translation key with a {shelf_name} placeholder so the suffix ("Books", "Chapters", "Pages") is translated, while the shelf name
+        # (user-defined content from BookStack) is substituted at runtime.
+        self._attr_translation_key = translation_key
+        self._attr_translation_placeholders = {"shelf_name": shelf["name"]}
         self._attr_icon = icon
         # Shelf ID in the unique_id keeps it stable even after a shelf rename.
         self._attr_unique_id = f"{entry.entry_id}_shelf_{shelf['id']}_{id_suffix}"
