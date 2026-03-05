@@ -7,6 +7,7 @@
 - Added the BookStack shelf ID as an attribute to the per shelf sensors (if enabled).
 - Added new services:
   - To list all books (optionally filtered by shelf ID). Makes finding BookStack book IDs easier.
+  - To list all chapters within a specified book. Makes finding BookStack chapter IDs easier.
 
 ## [1.3.2] - 2026-03-01
 ### Added

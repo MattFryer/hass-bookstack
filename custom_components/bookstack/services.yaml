@@ -209,3 +209,23 @@ list_books:
         number:
           min: 1
           mode: box
+
+list_chapters:
+  name: List Chapters
+  description: >
+    Returns a list of chapters within the specified book, each with its ID, name, book ID, book name, and last modified date. Always returns a response and is 
+    intended for use in automation templates.
+
+  fields:
+
+    book_id:
+      name: Book ID
+      description: >
+        The numeric ID of the book whose chapters to return. You can find a book's ID from the response when creating a book, via the BookStack web UI, or from 
+        the list_books action response.
+      required: true
+      example: 3
+      selector:
+        number:
+          min: 1
+          mode: box

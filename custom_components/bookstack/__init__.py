@@ -42,6 +42,7 @@ from .const import (
     ACTION_CREATE_PAGE,
     ACTION_APPEND_PAGE,
     ACTION_LIST_BOOKS,
+    ACTION_LIST_CHAPTERS,
 )
 from .coordinator import BookStackCoordinator
 
@@ -135,6 +136,13 @@ LIST_BOOKS_SCHEMA = vol.Schema(
     }
 )
 
+# Voluptuous schema for the list_chapters action. book_id is required as chapters are always scoped to a specific book.
+LIST_CHAPTERS_SCHEMA = vol.Schema(
+    {
+        vol.Required("book_id"): vol.All(int, vol.Range(min=1)),
+    }
+)
+
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Register BookStack service actions at integration load time.
@@ -166,6 +174,9 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
             )
         return coordinator
 
+    # Define the handlers for each action. Each handler retrieves the appropriate coordinator and calls the corresponding async 
+    # method, passing in the validated data from the service call. The coordinator methods perform the actual API calls to BookStack 
+    # and return the results, which are then returned as the service response.
     async def handle_create_book(call: ServiceCall) -> dict:
         """Handle the bookstack.create_book action."""
         coordinator = _get_coordinator(call)
@@ -205,6 +216,15 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
             shelf_id=call.data.get("shelf_id"),
         )
 
+    async def handle_list_chapters(call: ServiceCall) -> dict:
+        """Handle the bookstack.list_chapters action."""
+        coordinator = _get_coordinator(call)
+        return await coordinator.async_list_chapters(
+            book_id=call.data["book_id"],
+        )
+
+    # Register the actions with Home Assistant. Each action is registered with its name, handler function, and schema for validating 
+    # input data. The supports_response flag indicates whether the action returns data that should be included in the service response.
     hass.services.async_register(
         domain=DOMAIN,
         service=ACTION_CREATE_BOOK,
@@ -231,6 +251,13 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         service=ACTION_LIST_BOOKS,
         service_func=handle_list_books,
         schema=LIST_BOOKS_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
+    hass.services.async_register(
+        domain=DOMAIN,
+        service=ACTION_LIST_CHAPTERS,
+        service_func=handle_list_chapters,
+        schema=LIST_CHAPTERS_SCHEMA,
         supports_response=SupportsResponse.ONLY,
     )
 

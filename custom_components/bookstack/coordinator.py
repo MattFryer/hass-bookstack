@@ -863,3 +863,87 @@ class BookStackCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         _LOGGER.debug("list_books returned %d books (shelf_id filter: %s)", len(results), shelf_id)
         return {"books": results}
+
+    async def async_list_chapters(
+        self,
+        book_id: int,
+    ) -> dict:
+        """Return a list of chapters within the specified book.
+
+        Fetches all chapters via the paginated GET /api/chapters endpoint, filtered to those belonging to the given book, and 
+        returns a list of dicts each containing:
+            id         - BookStack internal chapter ID
+            name       - display name of the chapter
+            book_id    - ID of the book the chapter belongs to
+            book_name  - display name of the book
+            updated_at - ISO 8601 timestamp of the last modification
+
+        Arguments:
+            book_id: The BookStack ID of the book whose chapters to return.
+
+        Returns:
+            A dict with a single "chapters" key containing the list of chapter dicts.
+
+        Raises:
+            ServiceValidationError: if book_id is not found.
+            HomeAssistantError:     on unexpected API errors or network failures.
+        """
+        from homeassistant.exceptions import HomeAssistantError, ServiceValidationError  # type: ignore
+
+        headers = {
+            "Authorization": f"Token {self.config['token_id']}:{self.config['token_secret']}",
+        }
+        base_url = self.config["url"].rstrip("/")
+        timeout = aiohttp.ClientTimeout(total=10)
+
+        async def get_json(endpoint: str) -> dict:
+            """Make an authenticated GET request and return the JSON response."""
+            url = f"{base_url}/api/{endpoint.lstrip('/')}"
+            try:
+                async with self.session.get(url, headers=headers, timeout=timeout, ssl=self._ssl) as resp:
+                    if resp.status == 401:
+                        raise HomeAssistantError("BookStack rejected the request: invalid API credentials")
+                    if resp.status == 404:
+                        return {}
+                    if resp.status != 200:
+                        raise HomeAssistantError(f"Unexpected response from BookStack (HTTP {resp.status})")
+                    return await resp.json()
+            except (HomeAssistantError, ServiceValidationError):
+                raise
+            except aiohttp.ClientError as err:
+                raise HomeAssistantError(f"Could not connect to BookStack: {err}") from err
+
+        # Validate the book exists and retrieve its name in a single call.
+        book_data = await get_json(f"books/{book_id}")
+        if not book_data:
+            raise ServiceValidationError(f"Book with ID {book_id} was not found in BookStack.")
+        book_name = book_data.get("name")
+
+        # Fetch all chapters with pagination, filtering by book_id. The API supports filtering via ?filter[book_id]= which avoids 
+        # fetching chapters from other books entirely.
+        all_chapters: list[dict] = []
+        offset = 0
+        page_size = 500
+        while True:
+            resp = await get_json(
+                f"chapters?count={page_size}&offset={offset}&filter[book_id]={book_id}"
+            )
+            batch = resp.get("data", [])
+            all_chapters.extend(batch)
+            if len(all_chapters) >= resp.get("total", 0) or not batch:
+                break
+            offset += page_size
+
+        results: list[dict] = [
+            {
+                "id":         chapter["id"],
+                "name":       chapter.get("name"),
+                "book_id":    book_id,
+                "book_name":  book_name,
+                "updated_at": chapter.get("updated_at"),
+            }
+            for chapter in all_chapters
+        ]
+
+        _LOGGER.debug("list_chapters returned %d chapters for book_id=%s", len(results), book_id)
+        return {"chapters": results}
