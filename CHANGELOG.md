@@ -8,6 +8,8 @@
 - Added new services:
   - To list all books (optionally filtered by shelf ID). Makes finding BookStack book IDs easier.
   - To list all chapters within a specified book. Makes finding BookStack chapter IDs easier.
+  - To list all pages (optionally filtered by chapter ID) within a specified book. 
+- Added translations for per-shelf sensor names.
 
 ## [1.3.2] - 2026-03-01
 ### Added

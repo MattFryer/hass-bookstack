@@ -48,6 +48,7 @@ The integration provides the following Home Assistant actions:
 - ```bookstack.append_page```: Appends content and tags to an existing Page in BookStack.
 - ```bookstack.list_books```: Generates a list of all books in BookStack. Optionally filtered to a specific shelf ID.
 - ```bookstack.list_chapters```: Generates a list of all chapters in a specific BookStack book. 
+- ```bookstack.list_pages```: Generates a list of all pages in a specific BookStack book. Optionally filtered to a specific chapter ID.
 
 > [!NOTE]
 > The "list" actions can be useful for finding BookStack item IDs, as these can be difficult to locate within the BookStack UI.

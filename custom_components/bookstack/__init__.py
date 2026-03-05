@@ -43,6 +43,7 @@ from .const import (
     ACTION_APPEND_PAGE,
     ACTION_LIST_BOOKS,
     ACTION_LIST_CHAPTERS,
+    ACTION_LIST_PAGES,
 )
 from .coordinator import BookStackCoordinator
 
@@ -130,6 +131,8 @@ APPEND_PAGE_SCHEMA = vol.Schema(
 
 # Voluptuous schema for the list_books action. shelf_id is entirely optional; when omitted all books are returned, when provided only 
 # books on that shelf are returned.
+# Field notes:
+#   shelf_id  — required; the ID of the shelf to list books from
 LIST_BOOKS_SCHEMA = vol.Schema(
     {
         vol.Optional("shelf_id"): vol.All(int, vol.Range(min=1)),
@@ -137,12 +140,25 @@ LIST_BOOKS_SCHEMA = vol.Schema(
 )
 
 # Voluptuous schema for the list_chapters action. book_id is required as chapters are always scoped to a specific book.
+# Field notes:
+#   book_id  — required; the ID of the book to list chapters from
 LIST_CHAPTERS_SCHEMA = vol.Schema(
     {
         vol.Required("book_id"): vol.All(int, vol.Range(min=1)),
     }
 )
 
+# Voluptuous schema for the list_pages action. book_id is required; chapter_id is optional and, when supplied, narrows results to pages 
+# within that chapter. If the chapter does not belong to the book a ServiceValidationError is raised by the coordinator.
+# Field notes:
+#   book_id  — required; the ID of the book to list pages from
+#   chapter_id — optional; the ID of the chapter to list pages from. Must belong to the book specified by book_id
+LIST_PAGES_SCHEMA = vol.Schema(
+    {
+        vol.Required("book_id"): vol.All(int, vol.Range(min=1)),
+        vol.Optional("chapter_id"): vol.All(int, vol.Range(min=1)),
+    }
+)
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Register BookStack service actions at integration load time.
@@ -222,6 +238,14 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         return await coordinator.async_list_chapters(
             book_id=call.data["book_id"],
         )
+    
+    async def handle_list_pages(call: ServiceCall) -> dict:
+        """Handle the bookstack.list_pages action."""
+        coordinator = _get_coordinator(call)
+        return await coordinator.async_list_pages(
+            book_id=call.data["book_id"],
+            chapter_id=call.data.get("chapter_id"),
+        )
 
     # Register the actions with Home Assistant. Each action is registered with its name, handler function, and schema for validating 
     # input data. The supports_response flag indicates whether the action returns data that should be included in the service response.
@@ -258,6 +282,13 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         service=ACTION_LIST_CHAPTERS,
         service_func=handle_list_chapters,
         schema=LIST_CHAPTERS_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
+    hass.services.async_register(
+        domain=DOMAIN,
+        service=ACTION_LIST_PAGES,
+        service_func=handle_list_pages,
+        schema=LIST_PAGES_SCHEMA,
         supports_response=SupportsResponse.ONLY,
     )
 

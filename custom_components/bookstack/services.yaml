@@ -229,3 +229,36 @@ list_chapters:
         number:
           min: 1
           mode: box
+
+list_pages:
+  name: List Pages
+  description: >
+    Returns a list of pages within the specified book, each with its ID, name, book ID, book name, chapter ID (if any), chapter name (if any), and last 
+    modified date. Optionally filter by chapter ID to return only pages within that chapter. If the chapter ID is provided but does not belong to the specified
+    book, an error is returned. Always returns a response and is intended for use in automation templates.
+
+  fields:
+
+    book_id:
+      name: Book ID
+      description: >
+        The numeric ID of the book whose pages to return. You can find a book's ID from the response when creating a book, via the BookStack web UI, or from 
+        the list_books action response.
+      required: true
+      example: 3
+      selector:
+        number:
+          min: 1
+          mode: box
+
+    chapter_id:
+      name: Chapter ID
+      description: >
+        Optional. When provided, only pages within this chapter are returned. The chapter must belong to the specified book, otherwise an error is returned. 
+        You can find a chapter's ID from the list_chapters action response or the BookStack web UI.
+      required: false
+      example: 7
+      selector:
+        number:
+          min: 1
+          mode: box

@@ -947,3 +947,127 @@ class BookStackCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         _LOGGER.debug("list_chapters returned %d chapters for book_id=%s", len(results), book_id)
         return {"chapters": results}
+
+    async def async_list_pages(
+        self,
+        book_id: int,
+        chapter_id: int | None = None,
+    ) -> dict:
+        """Return a list of pages within the specified book, optionally filtered to a chapter.
+
+        Fetches all pages via the paginated GET /api/pages endpoint filtered to the given book_id, then optionally narrows results to
+        a single chapter. Each returned dict contains:
+            id           - BookStack internal page ID
+            name         - display name of the page
+            book_id      - ID of the book the page belongs to
+            book_name    - display name of the book
+            chapter_id   - ID of the chapter the page belongs to, or None for
+                           top-level (unchaptered) pages
+            chapter_name - display name of the chapter, or None
+            updated_at   - ISO 8601 timestamp of the last modification
+
+        Arguments:
+            book_id:    Required. The BookStack ID of the book whose pages to return.
+            chapter_id: Optional. When provided, only pages within this chapter are
+                        returned. If the chapter does not belong to the specified
+                        book a ServiceValidationError is raised.
+
+        Returns:
+            A dict with a single "pages" key containing the list of page dicts.
+
+        Raises:
+            ServiceValidationError: if book_id is not found, or if chapter_id is
+                                    provided but does not belong to the book.
+            HomeAssistantError:     on unexpected API errors or network failures.
+        """
+        from homeassistant.exceptions import HomeAssistantError, ServiceValidationError  # type: ignore
+
+        headers = {
+            "Authorization": f"Token {self.config['token_id']}:{self.config['token_secret']}",
+        }
+        base_url = self.config["url"].rstrip("/")
+        timeout = aiohttp.ClientTimeout(total=10)
+
+        async def get_json(endpoint: str) -> dict:
+            """Make an authenticated GET request and return the JSON response."""
+            url = f"{base_url}/api/{endpoint.lstrip('/')}"
+            try:
+                async with self.session.get(url, headers=headers, timeout=timeout, ssl=self._ssl) as resp:
+                    if resp.status == 401:
+                        raise HomeAssistantError("BookStack rejected the request: invalid API credentials")
+                    if resp.status == 404:
+                        return {}
+                    if resp.status != 200:
+                        raise HomeAssistantError(f"Unexpected response from BookStack (HTTP {resp.status})")
+                    return await resp.json()
+            except (HomeAssistantError, ServiceValidationError):
+                raise
+            except aiohttp.ClientError as err:
+                raise HomeAssistantError(f"Could not connect to BookStack: {err}") from err
+
+        # Validate the book exists and retrieve its name in a single call.
+        book_data = await get_json(f"books/{book_id}")
+        if not book_data:
+            raise ServiceValidationError(f"Book with ID {book_id} was not found in BookStack.")
+        book_name = book_data.get("name")
+
+        # If a chapter filter was requested, validate it exists and belongs to this book.
+        chapter_name: str | None = None
+        if chapter_id is not None:
+            chapter_data = await get_json(f"chapters/{chapter_id}")
+            if not chapter_data:
+                raise ServiceValidationError(
+                    f"Chapter with ID {chapter_id} was not found in BookStack."
+                )
+            if chapter_data.get("book_id") != book_id:
+                raise ServiceValidationError(
+                    f"Chapter with ID {chapter_id} does not belong to book with ID {book_id}."
+                )
+            chapter_name = chapter_data.get("name")
+
+        # Fetch all pages for this book with pagination. The API supports filter[book_id]= to scope results server-side, avoiding 
+        # fetching pages from other books entirely.
+        all_pages: list[dict] = []
+        offset = 0
+        page_size = 500
+        while True:
+            resp = await get_json(
+                f"pages?count={page_size}&offset={offset}&filter[book_id]={book_id}"
+            )
+            batch = resp.get("data", [])
+            all_pages.extend(batch)
+            if len(all_pages) >= resp.get("total", 0) or not batch:
+                break
+            offset += page_size
+
+        # Build a chapter_id -> chapter_name lookup from the book contents so we can populate chapter_name on each page without extra
+        # API calls. book_data["contents"] lists chapters (with their name) and top-level pages.
+        chapter_names: dict[int, str] = {
+            item["id"]: item["name"]
+            for item in book_data.get("contents", [])
+            if item.get("type") == "chapter"
+        }
+
+        results: list[dict] = []
+        for page in all_pages:
+            page_chapter_id: int | None = page.get("chapter_id") or None
+
+            # Apply the optional chapter filter.
+            if chapter_id is not None and page_chapter_id != chapter_id:
+                continue
+
+            results.append({
+                "id":           page["id"],
+                "name":         page.get("name"),
+                "book_id":      book_id,
+                "book_name":    book_name,
+                "chapter_id":   page_chapter_id,
+                "chapter_name": chapter_names.get(page_chapter_id) if page_chapter_id else None,
+                "updated_at":   page.get("updated_at"),
+            })
+
+        _LOGGER.debug(
+            "list_pages returned %d pages for book_id=%s (chapter_id filter: %s)",
+            len(results), book_id, chapter_id,
+        )
+        return {"pages": results}
