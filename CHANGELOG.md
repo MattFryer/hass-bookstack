@@ -11,6 +11,9 @@
   - To list all pages (optionally filtered by chapter ID) within a specified book. 
 - Added translations for per-shelf sensor names.
 
+### Changed
+- Better error handling for certificate errors when communicating with BookStack
+
 ## [1.3.2] - 2026-03-01
 ### Added
 - Added support for configuring multiple BookStack instances.
