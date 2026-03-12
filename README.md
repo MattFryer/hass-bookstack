@@ -75,6 +75,9 @@ The integration provides the following Home Assistant actions:
 
 ### HACS (Recommended)
 
+> [!TIP]
+> The integration has been submitted for inclusion in the HACS default integrations list. Try searching HACS before following the below instructions in case it has already been accepted and can be installed without adding it as a custom repository.
+
 1. Open HACS in Home Assistant
 2. Click the 3 dots in the top right corner
 3. Select "Custom repositories"
