@@ -1012,7 +1012,6 @@ class BookStackCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         book_name = book_data.get("name")
 
         # If a chapter filter was requested, validate it exists and belongs to this book.
-        chapter_name: str | None = None
         if chapter_id is not None:
             chapter_data = await get_json(f"chapters/{chapter_id}")
             if not chapter_data:
@@ -1023,7 +1022,6 @@ class BookStackCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 raise ServiceValidationError(
                     f"Chapter with ID {chapter_id} does not belong to book with ID {book_id}."
                 )
-            chapter_name = chapter_data.get("name")
 
         # Fetch all pages for this book with pagination. The API supports filter[book_id]= to scope results server-side, avoiding 
         # fetching pages from other books entirely.
