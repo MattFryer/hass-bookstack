@@ -6,7 +6,6 @@ credentials, and creates config entries that store the necessary information to 
 """
 
 from __future__ import annotations
-from xml.parsers.expat import errors
 
 import voluptuous as vol # type: ignore
 import aiohttp # type: ignore
