@@ -90,7 +90,8 @@ class BookStackUpdateEntity(CoordinatorEntity[BookStackCoordinator], UpdateEntit
     @property
     def installed_version(self) -> str | None:
         """Return the version currently running on the BookStack server."""
-        return self.coordinator.version
+        version = self.coordinator.version
+        return version.lstrip("v") if version else None
 
     @property
     def latest_version(self) -> str | None:
