@@ -16,8 +16,6 @@ from homeassistant.components.diagnostics import async_redact_data # type: ignor
 from homeassistant.config_entries import ConfigEntry # type: ignore
 from homeassistant.core import HomeAssistant # type: ignore
 
-from .const import DOMAIN
-
 # Define which keys in the config entry data and options should be redacted in the diagnostics output to protect sensitive information.
 # They are replaced with "**REDACTED**" in the diagnostics JSON file.
 REDACT_KEYS = {"token_id", "token_secret"}
