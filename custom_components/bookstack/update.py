@@ -99,7 +99,8 @@ class BookStackUpdateEntity(CoordinatorEntity[BookStackCoordinator], UpdateEntit
 
         Returns None while the GitHub check is still pending, which causes HA to render the entity state as 'unknown'.
         """
-        return self.coordinator.latest_version
+        version = self.coordinator.latest_version
+        return version.lstrip("v") if version else None
 
     @property
     def release_url(self) -> str | None:
