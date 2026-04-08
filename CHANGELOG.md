@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.4.1] - 2026-04-08
+### Fixed
+- Fixed issue with update entity displaying currently installed version with a preceding "v"
+- Remove unused xml.parsers.expat import from config_flow
+
 ## [1.4.0] - 2026-03-03
 ### Added 
 - Option to ignore TLS certificate errors when connecting to a BookStack instance using a self-signed or local SSL/TLS certificate.
